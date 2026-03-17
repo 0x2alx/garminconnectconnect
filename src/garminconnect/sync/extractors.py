@@ -46,17 +46,33 @@ def extract_daily_summary(target_date: date, data: dict[str, Any]) -> DailySumma
 
 def extract_heart_rate_readings(data: dict[str, Any]) -> list[HeartRateReading]:
     readings = []
-    for ts_ms, hr in data.get("heartRateValues", []):
-        if hr is not None and ts_ms is not None:
-            readings.append(HeartRateReading(timestamp=_ts_to_dt(ts_ms), heart_rate=hr))
+    for entry in data.get("heartRateValues", []):
+        if not isinstance(entry, (list, tuple)) or len(entry) < 2:
+            continue
+        ts_ms, hr = entry[0], entry[1]
+        if ts_ms is None or hr is None:
+            continue
+        try:
+            readings.append(HeartRateReading(timestamp=_ts_to_dt(int(ts_ms)), heart_rate=int(hr)))
+        except (ValueError, TypeError):
+            continue
     return readings
 
 
 def extract_stress_readings(data: dict[str, Any]) -> list[StressReading]:
     readings = []
-    for ts_ms, level in data.get("stressValuesArray", []):
-        if level is not None and level >= 0 and ts_ms is not None:
-            readings.append(StressReading(timestamp=_ts_to_dt(ts_ms), stress_level=level))
+    for entry in data.get("stressValuesArray", []):
+        if not isinstance(entry, (list, tuple)) or len(entry) < 2:
+            continue
+        ts_ms, level = entry[0], entry[1]
+        if ts_ms is None or level is None:
+            continue
+        try:
+            level = int(level)
+        except (ValueError, TypeError):
+            continue
+        if level >= 0:
+            readings.append(StressReading(timestamp=_ts_to_dt(int(ts_ms)), stress_level=level))
     return readings
 
 
