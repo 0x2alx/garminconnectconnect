@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "garminconnectconnect"
+version = "0.1.0"
+description = "Self-hosted Garmin Connect data server with MCP integration"
+requires-python = ">=3.12"
+dependencies = [
+    "garth>=0.6.0",
+    "sqlalchemy>=2.0.0",
+    "psycopg[binary]>=3.1.0",
+    "pymongo>=4.6.0",
+    "alembic>=1.13.0",
+    "apscheduler>=3.10.0,<4.0.0",
+    "fastmcp>=0.4.0",
+    "click>=8.1.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "python-dotenv>=1.0.0",
+    "structlog>=24.1.0",
+    "httpx>=0.27.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.3.0",
+    "mypy>=1.8.0",
+    "testcontainers[postgres,mongodb]>=4.0.0",
+]
+
+[project.scripts]
+garmin-server = "garminconnect.cli.commands:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
