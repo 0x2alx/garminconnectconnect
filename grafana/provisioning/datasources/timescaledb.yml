@@ -2,13 +2,13 @@ apiVersion: 1
 
 datasources:
   - name: TimescaleDB
-    type: postgres
+    type: grafana-postgresql-datasource
     access: proxy
     url: timescaledb:5432
     database: garmin
     user: garmin
     secureJsonData:
-      password: $POSTGRES_PASSWORD
+      password: garmin_secret
     jsonData:
       sslmode: disable
       maxOpenConns: 10
