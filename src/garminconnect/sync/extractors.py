@@ -61,11 +61,20 @@ def extract_stress_readings(data: dict[str, Any]) -> list[StressReading]:
 
 
 def extract_body_battery_readings(data: dict[str, Any]) -> list[BodyBatteryReading]:
+    """Extract body battery from the stress endpoint response.
+
+    bodyBatteryValuesArray entries are [epoch_ms, battery_level] arrays.
+    """
     readings = []
-    for item in data if isinstance(data, list) else data.get("bodyBatteryValuesArray", []):
-        ts_ms = item.get("startTimestampGMT") or item.get("timestamp")
-        level = item.get("bodyBatteryLevel") or item.get("level")
-        if ts_ms is not None and level is not None:
+    for item in data.get("bodyBatteryValuesArray", []):
+        if isinstance(item, (list, tuple)) and len(item) >= 2:
+            ts_ms, level = item[0], item[1]
+        elif isinstance(item, dict):
+            ts_ms = item.get("startTimestampGMT") or item.get("timestamp")
+            level = item.get("bodyBatteryLevel") or item.get("level")
+        else:
+            continue
+        if ts_ms is not None and level is not None and level >= 0:
             readings.append(BodyBatteryReading(timestamp=_ts_to_dt(ts_ms), level=level))
     return readings
 
@@ -128,12 +137,20 @@ def extract_hrv_summary(target_date: date, data: dict[str, Any]) -> HRVSummary:
     )
 
 
-def extract_training_readiness(target_date: date, data: dict[str, Any]) -> TrainingReadiness:
+def extract_training_readiness(target_date: date, data: Any) -> TrainingReadiness:
+    # API returns a list of readiness snapshots; pick the morning reading or first entry
+    if isinstance(data, list):
+        entry = next(
+            (e for e in data if e.get("inputContext") == "AFTER_WAKEUP_RESET"),
+            data[0] if data else {},
+        )
+    else:
+        entry = data
     return TrainingReadiness(
         date=target_date,
-        score=data.get("score"),
-        level=data.get("level"),
-        sleep_score=data.get("sleepScore"),
-        recovery_score=data.get("recoveryScore"),
-        hrv_score=data.get("hrvScore"),
+        score=entry.get("score"),
+        level=entry.get("level"),
+        sleep_score=entry.get("sleepScore"),
+        recovery_score=entry.get("recoveryScore"),
+        hrv_score=entry.get("hrvScore"),
     )

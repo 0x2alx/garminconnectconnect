@@ -16,14 +16,14 @@ EXTRACTORS: dict[str, Any] = {
     "daily_summary": lambda d, data: [extract_daily_summary(d, data)],
     "heart_rate": lambda d, data: extract_heart_rate_readings(data),
     "stress": lambda d, data: extract_stress_readings(data),
-    "body_battery": lambda d, data: extract_body_battery_readings(data),
     "sleep": lambda d, data: [extract_sleep_summary(d, data)],
     "hrv": lambda d, data: [extract_hrv_summary(d, data)],
     "training_readiness": lambda d, data: [extract_training_readiness(d, data)],
 }
 
+# Endpoints to sync daily. body_battery is extracted from the stress response.
 DAILY_SYNC_ENDPOINTS = [
-    "daily_summary", "heart_rate", "stress", "body_battery",
+    "daily_summary", "heart_rate", "stress",
     "sleep", "hrv", "training_readiness", "respiration", "spo2",
 ]
 
@@ -32,9 +32,11 @@ class SyncPipeline:
     def __init__(self, api_client: GarminAPIClient, repository: HealthRepository):
         self.api = api_client
         self.repo = repository
+        self._stress_cache: dict[str, Any] = {}
 
     def sync_date(self, target_date: date, endpoints: list[str] | None = None, force: bool = False) -> dict[str, str]:
         results: dict[str, str] = {}
+        self._stress_cache.clear()
         for endpoint_name in endpoints or DAILY_SYNC_ENDPOINTS:
             if not force and self.repo.get_sync_status(endpoint_name, target_date) == "completed":
                 results[endpoint_name] = "skipped"
@@ -43,6 +45,14 @@ class SyncPipeline:
             try:
                 raw_data = self.api.fetch(endpoint_name, date=target_date)
                 self.repo.store_raw(endpoint_name, target_date, raw_data)
+
+                # Extract body battery from stress response (same endpoint)
+                if endpoint_name == "stress" and raw_data:
+                    self._stress_cache[target_date.isoformat()] = raw_data
+                    bb_readings = extract_body_battery_readings(raw_data)
+                    if bb_readings:
+                        self.repo.upsert_many(bb_readings)
+
                 extractor = EXTRACTORS.get(endpoint_name)
                 if extractor and raw_data:
                     models = extractor(target_date, raw_data)
