@@ -97,13 +97,25 @@ def mcp() -> None:
 @cli.command()
 def login() -> None:
     """Authenticate with Garmin Connect and store tokens."""
+    import sys
+
     from garminconnect.auth.client import GarminAuth
 
-    email = click.prompt("Garmin email", default=settings.garmin_email)
-    password = click.prompt("Garmin password", hide_input=True)
+    email = settings.garmin_email
+    password = settings.garmin_password
+
+    if not email or not password or email == "your@email.com":
+        click.echo("No credentials found in .env — prompting interactively.")
+        email = click.prompt("Garmin email")
+        password = click.prompt("Garmin password", hide_input=True)
+
     auth = GarminAuth(token_dir=settings.garmin_token_dir)
-    auth.login(email, password)
-    click.echo(f"Logged in. Tokens saved to {settings.garmin_token_dir}")
+    try:
+        auth.login(email, password)
+        click.echo(f"Logged in. Tokens saved to {settings.garmin_token_dir}")
+    except Exception as e:
+        click.echo(f"Login failed: {e}", err=True)
+        sys.exit(1)
 
 
 @cli.command()
