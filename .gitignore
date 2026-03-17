@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
 
 .env
 !.env.example
@@ -8,11 +9,33 @@ __pycache__/
 dist/
 build/
 *.egg-info/
+*.whl
 
 .venv/
 venv/
+.venv*/
 
 .mypy_cache/
 .ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
 
 *.db
+*.sqlite3
+
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Docker
+docker-compose.override.yml
+
+# Garmin tokens
+.garminconnect/
+
+# OS
+.DS_Store
+Thumbs.db
