@@ -2,15 +2,15 @@ services:
   timescaledb:
     image: timescale/timescaledb:latest-pg16
     environment:
-      POSTGRES_DB: garmin
-      POSTGRES_USER: garmin
+      POSTGRES_DB: ${POSTGRES_DB:-garmin}
+      POSTGRES_USER: ${POSTGRES_USER:-garmin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-garmin_secret}
     ports:
       - "5432:5432"
     volumes:
       - timescaledb_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U garmin"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-garmin}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -43,17 +43,62 @@ services:
       timescaledb:
         condition: service_healthy
 
+  # ── Garmin Server (daemon mode) ──────────────────────────────────
   garmin-server:
     build: .
     env_file: .env
+    environment:
+      POSTGRES_HOST: timescaledb
+      MONGO_HOST: mongodb
+      GARMIN_TOKEN_DIR: /home/appuser/.garminconnect
     depends_on:
       timescaledb:
         condition: service_healthy
       mongodb:
         condition: service_healthy
     volumes:
-      - garmin_tokens:/app/tokens
-    command: ["garmin-server", "daemon"]
+      - garmin_tokens:/home/appuser/.garminconnect
+    restart: unless-stopped
+
+  # ── CLI commands (run with: docker compose run --rm garmin-cli <command>) ──
+  garmin-cli:
+    build: .
+    env_file: .env
+    environment:
+      POSTGRES_HOST: timescaledb
+      MONGO_HOST: mongodb
+      GARMIN_TOKEN_DIR: /home/appuser/.garminconnect
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - garmin_tokens:/home/appuser/.garminconnect
+    stdin_open: true
+    tty: true
+    entrypoint: ["garmin-server"]
+    command: ["--help"]
+    profiles:
+      - cli
+
+  # ── MCP server (for AI/LLM integration) ─────────────────────────
+  garmin-mcp:
+    build: .
+    env_file: .env
+    environment:
+      POSTGRES_HOST: timescaledb
+      MONGO_HOST: mongodb
+      GARMIN_TOKEN_DIR: /home/appuser/.garminconnect
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    volumes:
+      - garmin_tokens:/home/appuser/.garminconnect
+    entrypoint: ["garmin-server"]
+    command: ["mcp"]
+    profiles:
+      - mcp
 
 volumes:
   timescaledb_data:
