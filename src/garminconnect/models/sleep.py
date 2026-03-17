@@ -30,7 +30,6 @@ class SleepSummary(Base):
 class SleepStage(Base):
     __tablename__ = "sleep_stages"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, init=False)
-    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
     stage: Mapped[str] = mapped_column(String(20))
     duration_seconds: Mapped[int] = mapped_column(Integer)

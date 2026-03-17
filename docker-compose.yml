@@ -30,7 +30,7 @@ services:
   grafana:
     image: grafana/grafana:latest
     ports:
-      - "3000:3000"
+      - "${GRAFANA_PORT:-3001}:3000"
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
       GF_SECURITY_ADMIN_USER: admin
@@ -58,7 +58,7 @@ services:
         condition: service_healthy
     volumes:
       - garmin_tokens:/home/appuser/.garminconnect
-    restart: unless-stopped
+    restart: on-failure:3
 
   # ── CLI commands (run with: docker compose run --rm garmin-cli <command>) ──
   garmin-cli:

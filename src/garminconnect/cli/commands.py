@@ -24,13 +24,23 @@ def cli() -> None:
 @click.option("--force", is_flag=True, help="Re-sync already completed dates")
 def backfill(days: int, force: bool) -> None:
     """Backfill historical data from Garmin Connect."""
+    import sys
+
     from garminconnect.auth.client import GarminAuth
     from garminconnect.api.client import GarminAPIClient
     from garminconnect.db import create_engine_and_tables, get_mongo_db, HealthRepository
     from garminconnect.sync.pipeline import SyncPipeline
 
     auth = GarminAuth(token_dir=settings.garmin_token_dir)
-    auth.ensure_authenticated(settings.garmin_email, settings.garmin_password)
+    try:
+        auth.ensure_authenticated(settings.garmin_email, settings.garmin_password)
+    except Exception as e:
+        click.echo(f"Authentication failed: {e}", err=True)
+        click.echo(
+            "Run 'docker compose run --rm garmin-cli login' first to authenticate.",
+            err=True,
+        )
+        sys.exit(1)
     _, session_factory = create_engine_and_tables()
     mongo_db = get_mongo_db()
     repo = HealthRepository(session_factory=session_factory, mongo_db=mongo_db)
@@ -46,6 +56,8 @@ def backfill(days: int, force: bool) -> None:
 @cli.command()
 def daemon() -> None:
     """Start the polling daemon."""
+    import sys
+
     from garminconnect.auth.client import GarminAuth
     from garminconnect.api.client import GarminAPIClient
     from garminconnect.db import create_engine_and_tables, get_mongo_db, HealthRepository
@@ -53,7 +65,15 @@ def daemon() -> None:
     from garminconnect.sync.scheduler import GarminScheduler
 
     auth = GarminAuth(token_dir=settings.garmin_token_dir)
-    auth.ensure_authenticated(settings.garmin_email, settings.garmin_password)
+    try:
+        auth.ensure_authenticated(settings.garmin_email, settings.garmin_password)
+    except Exception as e:
+        click.echo(f"Authentication failed: {e}", err=True)
+        click.echo(
+            "Run 'docker compose run --rm garmin-cli login' first to authenticate.",
+            err=True,
+        )
+        sys.exit(1)
     _, session_factory = create_engine_and_tables()
     mongo_db = get_mongo_db()
     repo = HealthRepository(session_factory=session_factory, mongo_db=mongo_db)
