@@ -1,0 +1,1 @@
+"""Sync pipeline: fetch, store raw, transform, store processed."""
