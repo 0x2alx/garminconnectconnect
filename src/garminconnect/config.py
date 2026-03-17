@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    model_config = {"env_prefix": "", "env_file": ".env"}
+    model_config = {"env_prefix": "", "env_file": ".env", "extra": "ignore"}
 
     garmin_email: str = ""
     garmin_password: str = ""

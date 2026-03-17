@@ -79,12 +79,20 @@ def extract_stress_readings(data: dict[str, Any]) -> list[StressReading]:
 def extract_body_battery_readings(data: dict[str, Any]) -> list[BodyBatteryReading]:
     """Extract body battery from the stress endpoint response.
 
-    bodyBatteryValuesArray entries are [epoch_ms, battery_level] arrays.
+    bodyBatteryValuesArray entries are [epoch_ms, "MEASURED", battery_level, delta].
     """
     readings = []
     for item in data.get("bodyBatteryValuesArray", []):
-        if isinstance(item, (list, tuple)) and len(item) >= 2:
-            ts_ms, level = item[0], item[1]
+        if isinstance(item, (list, tuple)):
+            # Format: [epoch_ms, status_str, battery_level, delta]
+            # or possibly [epoch_ms, battery_level]
+            ts_ms = item[0] if len(item) >= 1 else None
+            if len(item) >= 4:
+                level = item[2]  # [ts, "MEASURED", level, delta]
+            elif len(item) >= 2:
+                level = item[1]  # [ts, level]
+            else:
+                continue
         elif isinstance(item, dict):
             ts_ms = item.get("startTimestampGMT") or item.get("timestamp")
             level = item.get("bodyBatteryLevel") or item.get("level")
@@ -93,10 +101,95 @@ def extract_body_battery_readings(data: dict[str, Any]) -> list[BodyBatteryReadi
         if ts_ms is None or level is None:
             continue
         try:
-            readings.append(BodyBatteryReading(timestamp=_ts_to_dt(int(ts_ms)), level=int(level)))
+            level_int = int(level)
+        except (ValueError, TypeError):
+            continue
+        if level_int >= 0:
+            readings.append(BodyBatteryReading(timestamp=_ts_to_dt(int(ts_ms)), level=level_int))
+    return readings
+
+
+def extract_respiration_readings(data: dict[str, Any]) -> list[RespirationReading]:
+    """Extract from respirationValuesArray: [epoch_ms, breaths_per_min]."""
+    readings = []
+    for entry in data.get("respirationValuesArray", []):
+        if not isinstance(entry, (list, tuple)) or len(entry) < 2:
+            continue
+        ts_ms, rate = entry[0], entry[1]
+        if ts_ms is None or rate is None:
+            continue
+        try:
+            readings.append(RespirationReading(timestamp=_ts_to_dt(int(ts_ms)), respiration_rate=float(rate)))
         except (ValueError, TypeError):
             continue
     return readings
+
+
+def extract_spo2_readings(data: dict[str, Any]) -> list[SpO2Reading]:
+    """Extract SpO2 from spO2HourlyAverages or continuousReadingDTOList."""
+    readings = []
+    # Try hourly averages first: [[epoch_ms, value], ...]
+    for entry in data.get("spO2HourlyAverages", []):
+        if not isinstance(entry, (list, tuple)) or len(entry) < 2:
+            continue
+        ts_ms, value = entry[0], entry[1]
+        if value is None:
+            continue
+        try:
+            # ts_ms might be a BSON Long object, convert via int
+            readings.append(SpO2Reading(timestamp=_ts_to_dt(int(ts_ms)), spo2=float(value)))
+        except (ValueError, TypeError, OSError):
+            continue
+    # Also try continuous readings
+    for entry in data.get("continuousReadingDTOList", []):
+        if not isinstance(entry, dict):
+            continue
+        ts_ms = entry.get("epochTimestamp") or entry.get("startTimestampGMT")
+        value = entry.get("spo2") or entry.get("reading")
+        if ts_ms is None or value is None:
+            continue
+        try:
+            readings.append(SpO2Reading(timestamp=_ts_to_dt(int(ts_ms)), spo2=float(value)))
+        except (ValueError, TypeError, OSError):
+            continue
+    return readings
+
+
+def extract_body_composition(target_date: date, data: Any) -> list[BodyComposition]:
+    """Extract from weight endpoint response."""
+    entries = []
+    # Response can be a list of weight entries or a dict with dailyWeightSummaries
+    items = []
+    if isinstance(data, list):
+        items = data
+    elif isinstance(data, dict):
+        items = data.get("dailyWeightSummaries", data.get("dateWeightList", []))
+        if not items and "weight" in data:
+            items = [data]
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        entry_date = item.get("date") or item.get("calendarDate")
+        if entry_date and isinstance(entry_date, str):
+            try:
+                d = date.fromisoformat(entry_date)
+            except ValueError:
+                d = target_date
+        else:
+            d = target_date
+        weight = item.get("weight")
+        if weight and weight > 1000:
+            weight = weight / 1000.0  # Garmin returns grams sometimes
+        entries.append(BodyComposition(
+            date=d,
+            weight_kg=weight,
+            bmi=item.get("bmi"),
+            body_fat_pct=item.get("bodyFat"),
+            muscle_mass_kg=item.get("muscleMass"),
+            bone_mass_kg=item.get("boneMass"),
+            body_water_pct=item.get("bodyWater"),
+        ))
+    return entries
 
 
 def extract_sleep_summary(target_date: date, data: dict[str, Any]) -> SleepSummary:
@@ -121,14 +214,25 @@ def extract_sleep_summary(target_date: date, data: dict[str, Any]) -> SleepSumma
 
 
 def extract_activity(data: dict[str, Any]) -> Activity:
+    start_time = data.get("startTimeGMT")
+    if isinstance(start_time, str):
+        try:
+            start_time = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+        except ValueError:
+            start_time = None
+    elif isinstance(start_time, (int, float)):
+        start_time = _ts_to_dt(int(start_time))
+    else:
+        start_time = None
+
     return Activity(
         activity_id=str(data["activityId"]),
-        activity_type=data.get("activityType", {}).get("typeKey"),
+        activity_type=data.get("activityType", {}).get("typeKey") if isinstance(data.get("activityType"), dict) else data.get("activityType"),
         sport=data.get("sportTypeId"),
         name=data.get("activityName"),
-        start_time=_ts_to_dt(data["startTimeGMT"]) if isinstance(data.get("startTimeGMT"), (int, float)) else None,
-        duration_seconds=int(data["duration"]) if data.get("duration") else None,
-        elapsed_seconds=int(data["elapsedDuration"]) if data.get("elapsedDuration") else None,
+        start_time=start_time,
+        duration_seconds=int(float(data["duration"])) if data.get("duration") else None,
+        elapsed_seconds=int(float(data["elapsedDuration"])) if data.get("elapsedDuration") else None,
         distance_meters=data.get("distance"),
         calories=data.get("calories"),
         avg_heart_rate=data.get("averageHR"),
@@ -146,6 +250,11 @@ def extract_activity(data: dict[str, Any]) -> Activity:
 
 
 def extract_hrv_summary(target_date: date, data: dict[str, Any]) -> HRVSummary:
+    # HRV response may have data nested under hrvSummaries
+    if isinstance(data, dict) and "hrvSummaries" in data:
+        summaries = data["hrvSummaries"]
+        if isinstance(summaries, list) and summaries:
+            data = summaries[0]
     return HRVSummary(
         date=target_date,
         weekly_avg=data.get("weeklyAvg"),

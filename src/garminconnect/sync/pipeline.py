@@ -5,8 +5,9 @@ import structlog
 from garminconnect.api.client import GarminAPIClient
 from garminconnect.db.repository import HealthRepository
 from garminconnect.sync.extractors import (
-    extract_activity, extract_body_battery_readings, extract_daily_summary,
-    extract_heart_rate_readings, extract_hrv_summary, extract_sleep_summary,
+    extract_activity, extract_body_battery_readings, extract_body_composition,
+    extract_daily_summary, extract_heart_rate_readings, extract_hrv_summary,
+    extract_respiration_readings, extract_sleep_summary, extract_spo2_readings,
     extract_stress_readings, extract_training_readiness,
 )
 
@@ -19,6 +20,8 @@ EXTRACTORS: dict[str, Any] = {
     "sleep": lambda d, data: [extract_sleep_summary(d, data)],
     "hrv": lambda d, data: [extract_hrv_summary(d, data)],
     "training_readiness": lambda d, data: [extract_training_readiness(d, data)],
+    "respiration": lambda d, data: extract_respiration_readings(data),
+    "spo2": lambda d, data: extract_spo2_readings(data),
 }
 
 # Endpoints to sync daily. body_battery is extracted from the stress response.
@@ -32,11 +35,9 @@ class SyncPipeline:
     def __init__(self, api_client: GarminAPIClient, repository: HealthRepository):
         self.api = api_client
         self.repo = repository
-        self._stress_cache: dict[str, Any] = {}
 
     def sync_date(self, target_date: date, endpoints: list[str] | None = None, force: bool = False) -> dict[str, str]:
         results: dict[str, str] = {}
-        self._stress_cache.clear()
         for endpoint_name in endpoints or DAILY_SYNC_ENDPOINTS:
             if not force and self.repo.get_sync_status(endpoint_name, target_date) == "completed":
                 results[endpoint_name] = "skipped"
@@ -48,7 +49,6 @@ class SyncPipeline:
 
                 # Extract body battery from stress response (same endpoint)
                 if endpoint_name == "stress" and raw_data:
-                    self._stress_cache[target_date.isoformat()] = raw_data
                     bb_readings = extract_body_battery_readings(raw_data)
                     if bb_readings:
                         self.repo.upsert_many(bb_readings)
@@ -72,6 +72,22 @@ class SyncPipeline:
         while current <= end_date:
             self.sync_date(current, endpoints=endpoints, force=force)
             current += timedelta(days=1)
+
+    def sync_body_composition(self, start_date: date, end_date: date) -> int:
+        """Sync weight/body composition for a date range."""
+        count = 0
+        try:
+            raw_data = self.api.fetch("weight", start=start_date, end=end_date)
+            if raw_data:
+                self.repo.store_raw("weight", end_date, raw_data)
+                entries = extract_body_composition(end_date, raw_data)
+                if entries:
+                    self.repo.upsert_many(entries)
+                    count = len(entries)
+                    logger.info("synced_body_composition", count=count)
+        except Exception as e:
+            logger.error("body_composition_sync_failed", error=str(e))
+        return count
 
     def sync_activities(self, limit: int = 20, start: int = 0) -> list[str]:
         synced_ids = []

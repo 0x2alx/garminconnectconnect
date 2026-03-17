@@ -50,6 +50,10 @@ def backfill(days: int, force: bool) -> None:
     start = end - timedelta(days=days)
     click.echo(f"Backfilling {days} days: {start} to {end}")
     pipeline.sync_range(start, end, force=force)
+    click.echo("Syncing body composition...")
+    pipeline.sync_body_composition(start, end)
+    click.echo("Syncing activities...")
+    pipeline.sync_activities(limit=100)
     click.echo("Backfill complete.")
 
 
