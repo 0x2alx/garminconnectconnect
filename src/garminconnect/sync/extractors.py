@@ -90,8 +90,12 @@ def extract_body_battery_readings(data: dict[str, Any]) -> list[BodyBatteryReadi
             level = item.get("bodyBatteryLevel") or item.get("level")
         else:
             continue
-        if ts_ms is not None and level is not None and level >= 0:
-            readings.append(BodyBatteryReading(timestamp=_ts_to_dt(ts_ms), level=level))
+        if ts_ms is None or level is None:
+            continue
+        try:
+            readings.append(BodyBatteryReading(timestamp=_ts_to_dt(int(ts_ms)), level=int(level)))
+        except (ValueError, TypeError):
+            continue
     return readings
 
 
