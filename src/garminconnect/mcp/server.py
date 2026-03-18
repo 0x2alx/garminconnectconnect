@@ -76,7 +76,8 @@ def create_mcp_server(postgres_url: str, api_key: str = "") -> FastMCP:
         """Run a pre-built health data query.
 
         Available: daily_overview, sleep_trend, hr_intraday, activity_list,
-        training_readiness_trend, hrv_trend, body_composition_trend, stress_intraday.
+        training_readiness_trend, hrv_trend, body_composition_trend, stress_intraday,
+        weekly_comparison, activity_detail, personal_records, recovery_analysis.
 
         Args:
             query_name: Name of the query template.
