@@ -32,6 +32,7 @@ docker compose up -d
 # CLI commands
 docker compose run --rm garmin-cli login
 docker compose run --rm garmin-cli backfill --days 30
+docker compose run --rm garmin-cli sync-one --endpoint heart_rate --date 2025-01-15
 docker compose run --rm garmin-cli status
 ```
 
@@ -43,7 +44,7 @@ docker compose run --rm garmin-cli status
 - `src/garminconnect/db/` — TimescaleDB + MongoDB connection and repository pattern
 - `src/garminconnect/sync/` — extractors (JSON->models), sync pipeline, APScheduler daemon
 - `src/garminconnect/mcp/` — FastMCP server with 6 tools for AI querying
-- `src/garminconnect/cli/` — Click CLI (login, backfill, daemon, mcp, status)
+- `src/garminconnect/cli/` — Click CLI (login, backfill, sync-one, daemon, mcp, status)
 - `grafana/` — Auto-provisioned datasource and 15-panel health dashboard
 
 ## Key Design Decisions

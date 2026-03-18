@@ -1,4 +1,5 @@
 from __future__ import annotations
+import re
 from datetime import date, timedelta
 from typing import Any
 from fastmcp import FastMCP
@@ -41,20 +42,38 @@ class BearerAuthMiddleware:
         await send({"type": "websocket.close", "code": 4001})
 
 
+_WRITE_KEYWORDS = re.compile(
+    r'\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|GRANT|REVOKE|COPY)\b',
+    re.IGNORECASE,
+)
+
+
 def create_mcp_server(postgres_url: str, api_key: str = "") -> FastMCP:
     mcp = FastMCP("Garmin Health Data")
     mcp._auth_api_key = api_key
     engine = create_engine(postgres_url, pool_pre_ping=True)
+    ro_engine = create_engine(postgres_url, pool_pre_ping=True,
+                              execution_options={"isolation_level": "AUTOCOMMIT"})
 
     @mcp.tool()
     def list_tables() -> dict[str, Any]:
         """List all available health data tables and their row counts."""
+        _valid_tables = set(get_table_list())
         result = {}
         with engine.connect() as conn:
             for table in get_table_list():
+                if table not in _valid_tables:
+                    continue
                 try:
-                    row = conn.execute(text(f"SELECT COUNT(*) FROM {table}")).fetchone()
-                    result[table] = row[0] if row else 0
+                    row = conn.execute(
+                        text("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = :t"),
+                        {"t": table},
+                    ).fetchone()
+                    if row and row[0] > 0:
+                        count_row = conn.execute(text(f"SELECT COUNT(*) FROM {table}")).fetchone()
+                        result[table] = count_row[0] if count_row else 0
+                    else:
+                        result[table] = "table not found"
                 except Exception:
                     result[table] = "table not found"
         return result
@@ -108,13 +127,15 @@ def create_mcp_server(postgres_url: str, api_key: str = "") -> FastMCP:
 
     @mcp.tool()
     def execute_sql(query: str) -> list[dict]:
-        """Execute a read-only SQL query. Only SELECT/WITH allowed."""
+        """Execute a read-only SQL query. Only SELECT statements allowed."""
         normalized = query.strip().upper()
         if not normalized.startswith("SELECT") and not normalized.startswith("WITH"):
             return [{"error": "Only SELECT/WITH queries are allowed"}]
-        with engine.connect() as conn:
-            conn.execute(text("SET TRANSACTION READ ONLY"))
+        if _WRITE_KEYWORDS.search(normalized):
+            return [{"error": "Write operations (INSERT/UPDATE/DELETE/DROP/etc.) are not allowed"}]
+        with ro_engine.connect() as conn:
             try:
+                conn.execute(text("BEGIN READ ONLY"))
                 result = conn.execute(text(query))
                 rows = result.fetchmany(500)
                 return [dict(row._mapping) for row in rows]

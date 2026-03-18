@@ -80,14 +80,22 @@ class TestExecuteSqlLogic:
                     assert "Only SELECT/WITH" not in r["error"]
 
     def test_comment_bypass_blocked(self):
-        """SQL comments can't bypass the read-only protection (Task 1.3).
-        Starts with SELECT so passes prefix check; READ ONLY transaction blocks writes."""
+        """SQL with write keywords hidden after SELECT prefix is blocked."""
         server = create_mcp_server("postgresql://test:test@localhost/test")
         result = _call_tool(server, "execute_sql", {"query": "SELECT/**/1;DROP/**/TABLE/**/foo"})
-        if isinstance(result, list):
-            for r in result:
-                if isinstance(r, dict) and "error" in r:
-                    assert "Only SELECT/WITH" not in r["error"]
+        assert "Write operations" in str(result) or "not allowed" in str(result)
+
+    def test_with_delete_blocked(self):
+        """WITH ... DELETE bypass is blocked by write keyword check."""
+        server = create_mcp_server("postgresql://test:test@localhost/test")
+        result = _call_tool(server, "execute_sql", {"query": "WITH cte AS (DELETE FROM activities RETURNING *) SELECT * FROM cte"})
+        assert "Write operations" in str(result) or "not allowed" in str(result)
+
+    def test_with_update_blocked(self):
+        """WITH ... UPDATE bypass is blocked by write keyword check."""
+        server = create_mcp_server("postgresql://test:test@localhost/test")
+        result = _call_tool(server, "execute_sql", {"query": "WITH cte AS (UPDATE daily_summary SET total_steps = 0 RETURNING *) SELECT * FROM cte"})
+        assert "Write operations" in str(result) or "not allowed" in str(result)
 
 
 class TestGetTableSchemaValidation:

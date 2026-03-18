@@ -34,17 +34,16 @@ Self-hosted Garmin Connect data server. Polls your Garmin Connect account, store
 ### 1. Clone and configure
 
 ```bash
-git clone <this-repo>
+git clone https://github.com/0x2alx/garminconnectconnect.git
 cd garminconnectconnect
 
-# Generate random credentials for all services
+# Recommended: generate random credentials for all services
 ./scripts/generate-secrets.sh
-
-# Or copy the example and fill in manually
-cp .env.example .env
 ```
 
-Edit `.env` with your Garmin credentials:
+This creates a `.env` file with cryptographically random passwords for PostgreSQL, MongoDB, Grafana, and the MCP bearer token. If you prefer to set values manually, copy the example instead: `cp .env.example .env`.
+
+Then edit `.env` with your Garmin credentials:
 
 ```env
 GARMIN_EMAIL=your@email.com
@@ -52,8 +51,6 @@ GARMIN_PASSWORD=your_garmin_password
 ```
 
 All other defaults work out of the box. See [Configuration](#configuration) for full options.
-
-**Security note:** Running `scripts/generate-secrets.sh` generates random passwords for PostgreSQL, MongoDB, Grafana, and MCP. It preserves any existing Garmin credentials in `.env`.
 
 ### 2. Build and start infrastructure
 
@@ -171,6 +168,7 @@ docker compose run --rm garmin-cli <command> [options]
 | `login` | Authenticate with Garmin Connect | `docker compose run --rm garmin-cli login` |
 | `backfill` | Pull historical data | `docker compose run --rm garmin-cli backfill --days 30` |
 | `backfill --force` | Re-sync already completed dates | `docker compose run --rm garmin-cli backfill --days 7 --force` |
+| `sync-one` | Sync a single endpoint for a single date | `docker compose run --rm garmin-cli sync-one --endpoint heart_rate --date 2025-01-15` |
 | `daemon` | Start the polling daemon (foreground) | `docker compose run --rm garmin-cli daemon` |
 | `mcp` | Start the MCP server | `docker compose run --rm garmin-cli mcp` |
 | `status` | Show sync status per metric | `docker compose run --rm garmin-cli status` |
@@ -180,9 +178,9 @@ docker compose run --rm garmin-cli <command> [options]
 
 The MCP server lets AI tools like Claude Code query your health data directly. It requires bearer token authentication when `MCP_API_KEY` is set.
 
-### Setup in Claude Code (stdio transport, local)
+### Option A: stdio transport (local, recommended for Claude Code)
 
-For local access, Claude Code connects via Docker stdio — no HTTPS or bearer token needed:
+For local access, Claude Code connects via Docker stdio. No network exposure or bearer token needed:
 
 ```bash
 claude mcp add garmin-health -s user -- \
@@ -190,9 +188,17 @@ claude mcp add garmin-health -s user -- \
   run --rm --no-deps -T garmin-mcp
 ```
 
-### Setup via mcporter (SSE transport, remote)
+Replace `/path/to/garminconnectconnect` with the actual path to this repo on your machine.
 
-For remote access (e.g., from OpenClaw), configure `~/.mcporter/mcporter.json`:
+### Option B: SSE transport (remote, via mcporter or direct)
+
+For remote access, start the `garmin-mcp` Docker service:
+
+```bash
+docker compose up -d garmin-mcp
+```
+
+This starts the MCP server listening on `127.0.0.1:8080`. To expose it remotely, set up the [TLS reverse proxy](#6-set-up-tls-reverse-proxy-optional-but-recommended) and configure your MCP client (e.g., mcporter) with `~/.mcporter/mcporter.json`:
 
 ```json
 {
@@ -219,12 +225,12 @@ Once connected, Claude can use these tools:
 | `get_table_schema` | Get column names and types for a table |
 | `query_health_data` | Run pre-built queries (see below) |
 | `execute_sql` | Run custom read-only SQL queries |
-| `get_health_summary` | Get a comprehensive summary for the last N days |
+| `get_health_summary` | Get a comprehensive summary for a period (week, month, year, etc.) |
 | `get_sync_status` | Check when each metric was last synced |
 
 ### Pre-built Queries
 
-Use with `query_health_data(query_name, start_date, end_date)`:
+Use with `query_health_data(query_name, start_date, end_date)`. You can also pass a `period` parameter (e.g., `"week"`, `"4weeks"`, `"month"`, `"year"`) instead of explicit dates -- periods use Garmin's Monday-to-Sunday week convention.
 
 | Query Name | What it returns |
 |------------|----------------|
@@ -233,9 +239,13 @@ Use with `query_health_data(query_name, start_date, end_date)`:
 | `hr_intraday` | Per-minute heart rate readings |
 | `stress_intraday` | Per-3-minute stress readings |
 | `activity_list` | Recent activities with distance, duration, HR |
+| `activity_detail` | Detailed activity data (HR, speed, cadence, training effect, VO2max) |
 | `training_readiness_trend` | Readiness score breakdown |
 | `hrv_trend` | HRV weekly average and last night |
 | `body_composition_trend` | Weight and body fat percentage |
+| `weekly_comparison` | This week vs last week averages |
+| `personal_records` | Per-activity-type bests (longest, fastest, most elevation) |
+| `recovery_analysis` | Combined RHR, stress, sleep, HRV, and readiness data |
 
 ### Example Claude Code Prompts
 
@@ -259,7 +269,7 @@ All configuration is via environment variables in `.env`:
 | `POSTGRES_PORT` | `5432` | PostgreSQL port |
 | `POSTGRES_DB` | `garmin` | Database name |
 | `POSTGRES_USER` | `garmin` | Database user |
-| `POSTGRES_PASSWORD` | `garmin_secret` | Database password |
+| `POSTGRES_PASSWORD` | `garmin_secret` | Database password (**change this**) |
 | `MONGO_HOST` | `mongodb` | MongoDB host (container name in Docker) |
 | `MONGO_PORT` | `27017` | MongoDB port |
 | `MONGO_DB` | `garmin_raw` | MongoDB database name |
@@ -267,7 +277,11 @@ All configuration is via environment variables in `.env`:
 | `MONGO_ROOT_PASSWORD` | (required) | MongoDB root password |
 | `POLL_INTERVAL_MINUTES` | `10` | How often the daemon polls Garmin (minutes) |
 | `BACKFILL_DAYS` | `30` | Default days for backfill command |
-| `GRAFANA_PASSWORD` | (required) | Grafana admin password |
+| `GRAFANA_PASSWORD` | `admin` | Grafana admin password (**change this**) |
+| `GRAFANA_PORT` | `3001` | Host port for Grafana (localhost-only) |
+| `MCP_TRANSPORT` | `stdio` | MCP transport: `stdio`, `sse`, or `streamable-http` |
+| `MCP_HOST` | `0.0.0.0` | MCP server bind address |
+| `MCP_PORT` | `8080` | MCP server port (localhost-only when via Docker) |
 | `MCP_API_KEY` | (empty) | Bearer token for MCP server auth (empty = auth disabled) |
 
 ### Changing the poll interval
@@ -377,6 +391,34 @@ To restore:
 cat backup.sql | docker compose exec -T timescaledb psql -U garmin garmin
 ```
 
+## Security
+
+This project is designed to run on a private server (e.g., a home server or VPS). The default configuration follows a defense-in-depth approach:
+
+**Network isolation:**
+- Database ports (PostgreSQL, MongoDB) are **not exposed** to the host network at all -- they are only accessible within the Docker network.
+- Grafana and MCP server bind to **127.0.0.1 only** -- they are not reachable from other machines without a reverse proxy.
+
+**TLS termination:**
+- The included nginx config (`nginx/garmin-connect.conf`) provides HTTPS with self-signed certificates.
+- Run `scripts/generate-certs.sh` to generate a 10-year self-signed cert with your server's IP as the SAN.
+- TLS 1.2+ only, with strong ciphers.
+
+**Authentication:**
+- **MCP server:** Bearer token authentication via `MCP_API_KEY`. When set, every HTTP request must include `Authorization: Bearer <key>`. When using stdio transport (local Claude Code), no token is needed.
+- **Grafana:** Password-protected admin account. Use `scripts/generate-secrets.sh` to generate a strong random password.
+- **Databases:** Password-protected with credentials generated by `scripts/generate-secrets.sh`.
+
+**Credential management:**
+- `scripts/generate-secrets.sh` generates cryptographically random passwords for all services.
+- Garmin OAuth tokens are stored in a Docker volume (`garmin_tokens`) and auto-refresh for ~1 year.
+- The `.env` file contains all secrets -- it is gitignored and should never be committed.
+
+**Recommendations:**
+- Always run `scripts/generate-secrets.sh` before first start -- do not use default passwords.
+- If exposing to the internet, set up the TLS reverse proxy and ensure `MCP_API_KEY` is set.
+- Consider firewall rules to restrict access to your server's IP.
+
 ## Garmin API Endpoints Polled
 
 The server polls 30 Garmin Connect API endpoints across 7 categories:
@@ -403,7 +445,7 @@ Run `docker compose run --rm garmin-cli login` first.
 
 ### Rate limit errors (HTTP 429)
 
-Garmin has locked your account temporarily. Wait 1-2 hours and try again. Reduce `POLL_INTERVAL_MINUTES` if this happens frequently.
+Garmin has locked your account temporarily. Wait 1-2 hours and try again. Increase `POLL_INTERVAL_MINUTES` if this happens frequently (higher value = less frequent polling).
 
 ### Daemon keeps restarting
 
@@ -412,7 +454,7 @@ Check logs: `docker compose logs garmin-server --tail 100`
 Common causes:
 - Invalid credentials — run `login` again
 - Database not ready — check `docker compose ps` for healthy status
-- Rate limiting — reduce poll frequency
+- Rate limiting — increase `POLL_INTERVAL_MINUTES` to poll less frequently
 
 ### Grafana shows "No data"
 
@@ -478,9 +520,11 @@ src/garminconnect/
     pipeline.py          # Fetch -> store raw -> transform -> store processed
     scheduler.py         # APScheduler polling daemon
   mcp/
-    server.py            # FastMCP server (6 tools)
-    tools.py             # SQL query templates
-  cli/commands.py        # Click CLI (login, backfill, daemon, mcp, status)
+    server.py            # FastMCP server (6 tools) + bearer auth middleware
+    tools.py             # SQL query templates (12 pre-built queries)
+  cli/commands.py        # Click CLI (login, backfill, sync-one, daemon, mcp, status)
+  config.py              # Pydantic settings (all env vars)
+  utils/date_ranges.py   # Garmin-aligned date range helpers
 ```
 
 ## License
