@@ -7,27 +7,21 @@ metadata: {"clawdbot":{"emoji":"⌚","requires":{"bins":["mcporter"]}}}
 
 # Garmin Health Data
 
-You have access to a Garmin Connect health database via the `garmin-connect` MCP server. Data is synced from Garmin Connect every 10 minutes and stored in TimescaleDB.
+You have access to a Garmin Connect health database via the `garmin-connect` MCP server, accessed through mcporter. Data is synced from Garmin Connect every 10 minutes and stored in TimescaleDB.
 
-## Connection
+## How to Use
 
-- **URL:** `https://10.0.0.83/mcp/sse`
-- **Authentication:** Bearer token required — set `Authorization: Bearer <MCP_API_KEY>` header
-- **Direct database access is not available** — all queries go through the MCP server
+All tools are called via mcporter:
 
-### mcporter config (`~/.mcporter/mcporter.json`)
+```bash
+mcporter call garmin-connect.<tool_name> [key=value ...]
+```
 
-```json
-{
-  "mcpServers": {
-    "garmin-health": {
-      "baseUrl": "https://10.0.0.83/mcp/sse",
-      "headers": {
-        "Authorization": "Bearer <MCP_API_KEY>"
-      }
-    }
-  }
-}
+For example:
+```bash
+mcporter call garmin-connect.get_health_summary period=week
+mcporter call garmin-connect.query_health_data query_name=daily_overview period=4weeks
+mcporter call garmin-connect.execute_sql query="SELECT date, total_steps FROM daily_summary ORDER BY date DESC LIMIT 5"
 ```
 
 ## Available Tools
