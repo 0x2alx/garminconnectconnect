@@ -1,3 +1,6 @@
+from urllib.parse import quote_plus
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -25,10 +28,26 @@ class Settings(BaseSettings):
     mcp_host: str = "0.0.0.0"
     mcp_port: int = 8080
 
+    @field_validator("poll_interval_minutes")
+    @classmethod
+    def _poll_interval_positive(cls, v: int) -> int:
+        if v <= 0:
+            raise ValueError("poll_interval_minutes must be > 0")
+        return v
+
+    @field_validator("postgres_port", "mongo_port", "mcp_port")
+    @classmethod
+    def _valid_port(cls, v: int) -> int:
+        if not (1 <= v <= 65535):
+            raise ValueError(f"Port must be between 1 and 65535, got {v}")
+        return v
+
     @property
     def postgres_url(self) -> str:
+        user = quote_plus(self.postgres_user)
+        password = quote_plus(self.postgres_password)
         return (
-            f"postgresql+psycopg://{self.postgres_user}:{self.postgres_password}"
+            f"postgresql+psycopg://{user}:{password}"
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
         )
 

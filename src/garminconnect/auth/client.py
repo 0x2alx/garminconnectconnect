@@ -27,6 +27,10 @@ class GarminAuth:
     def connectapi(self, endpoint: str, params: dict[str, Any] | None = None) -> Any:
         return garth.connectapi(endpoint, params=params)
 
+    def get_display_name(self) -> str:
+        """Get the Garmin Connect display name (used as user_id in API URLs)."""
+        return garth.client.username
+
     def ensure_authenticated(self, email: str = "", password: str = "") -> None:
         try:
             self.resume()

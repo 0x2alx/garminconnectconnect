@@ -5,6 +5,7 @@ import structlog
 from garminconnect.api.client import GarminAPIClient
 from garminconnect.db.repository import HealthRepository
 from garminconnect.sync.extractors import (
+    _parse_garmin_timestamp,
     extract_activity, extract_body_battery_readings, extract_body_composition,
     extract_daily_summary, extract_heart_rate_readings, extract_hrv_summary,
     extract_respiration_readings, extract_sleep_summary, extract_spo2_readings,
@@ -89,21 +90,32 @@ class SyncPipeline:
             logger.error("body_composition_sync_failed", error=str(e))
         return count
 
-    def sync_activities(self, limit: int = 20, start: int = 0) -> list[str]:
-        synced_ids = []
+    def sync_activities(self, limit: int = 20, start: int = 0, max_activities: int = 200) -> list[str]:
+        synced_ids: list[str] = []
+        offset = start
         try:
-            raw_list = self.api.fetch("activity_list", params={"limit": limit, "start": start})
-            if not raw_list:
-                return synced_ids
-            activities = raw_list if isinstance(raw_list, list) else raw_list.get("activities", raw_list)
-            for activity_data in activities:
-                activity_id = str(activity_data.get("activityId", ""))
-                if not activity_id:
-                    continue
-                self.repo.store_raw("activity", date.today(), activity_data)
-                activity = extract_activity(activity_data)
-                self.repo.upsert(activity)
-                synced_ids.append(activity_id)
+            while len(synced_ids) < max_activities:
+                raw_list = self.api.fetch("activity_list", params={"limit": limit, "start": offset})
+                if not raw_list:
+                    break
+                activities = raw_list if isinstance(raw_list, list) else raw_list.get("activities", raw_list)
+                if not activities:
+                    break
+                for activity_data in activities:
+                    activity_id = str(activity_data.get("activityId", ""))
+                    if not activity_id:
+                        continue
+                    activity_date = None
+                    ts = _parse_garmin_timestamp(activity_data.get("startTimeGMT") or activity_data.get("beginTimestamp"))
+                    if ts:
+                        activity_date = ts.date()
+                    self.repo.store_raw("activity", activity_date or date.today(), activity_data)
+                    activity = extract_activity(activity_data)
+                    self.repo.upsert(activity)
+                    synced_ids.append(activity_id)
+                if len(activities) < limit:
+                    break  # Last page
+                offset += limit
         except Exception as e:
             logger.error("activity_sync_failed", error=str(e))
         return synced_ids

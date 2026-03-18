@@ -53,14 +53,14 @@ def create_mcp_server(postgres_url: str) -> FastMCP:
         normalized = query.strip().upper()
         if not normalized.startswith("SELECT") and not normalized.startswith("WITH"):
             return [{"error": "Only SELECT/WITH queries are allowed"}]
-        for forbidden in ["INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "TRUNCATE", "CREATE"]:
-            if forbidden in normalized.split():
-                return [{"error": f"Forbidden keyword: {forbidden}"}]
         with engine.connect() as conn:
             conn.execute(text("SET TRANSACTION READ ONLY"))
-            result = conn.execute(text(query))
-            rows = result.fetchmany(500)
-            return [dict(row._mapping) for row in rows]
+            try:
+                result = conn.execute(text(query))
+                rows = result.fetchmany(500)
+                return [dict(row._mapping) for row in rows]
+            except Exception as e:
+                return [{"error": f"Query failed: {e}"}]
 
     @mcp.tool()
     def get_health_summary(days: int = 7) -> dict[str, Any]:
