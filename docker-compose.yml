@@ -5,8 +5,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-garmin}
       POSTGRES_USER: ${POSTGRES_USER:-garmin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-garmin_secret}
-    ports:
-      - "5432:5432"
     volumes:
       - timescaledb_data:/var/lib/postgresql/data
     healthcheck:
@@ -17,12 +15,13 @@ services:
 
   mongodb:
     image: mongo:7
-    ports:
-      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-garmin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
     volumes:
       - mongodb_data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: ["CMD", "mongosh", "-u", "${MONGO_ROOT_USER:-garmin}", "-p", "${MONGO_ROOT_PASSWORD}", "--eval", "db.adminCommand('ping')"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -30,10 +29,12 @@ services:
   grafana:
     image: grafana/grafana:latest
     ports:
-      - "${GRAFANA_PORT:-3001}:3000"
+      - "127.0.0.1:${GRAFANA_PORT:-3001}:3000"
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
       GF_SECURITY_ADMIN_USER: admin
+      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-garmin_secret}
     volumes:
       - grafana_data:/var/lib/grafana
@@ -93,7 +94,7 @@ services:
       MCP_HOST: "0.0.0.0"
       MCP_PORT: "8080"
     ports:
-      - "${MCP_PORT:-8080}:8080"
+      - "127.0.0.1:${MCP_PORT:-8080}:8080"
     depends_on:
       timescaledb:
         condition: service_healthy

@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     mongo_host: str = "localhost"
     mongo_port: int = 27017
     mongo_db: str = "garmin_raw"
+    mongo_root_user: str = "garmin"
+    mongo_root_password: str = ""
 
     poll_interval_minutes: int = 10
     backfill_days: int = 30
@@ -27,6 +29,7 @@ class Settings(BaseSettings):
     mcp_transport: str = "stdio"
     mcp_host: str = "0.0.0.0"
     mcp_port: int = 8080
+    mcp_api_key: str = ""  # If empty, auth is disabled
 
     @field_validator("poll_interval_minutes")
     @classmethod
@@ -53,6 +56,10 @@ class Settings(BaseSettings):
 
     @property
     def mongo_url(self) -> str:
+        if self.mongo_root_user and self.mongo_root_password:
+            user = quote_plus(self.mongo_root_user)
+            password = quote_plus(self.mongo_root_password)
+            return f"mongodb://{user}:{password}@{self.mongo_host}:{self.mongo_port}"
         return f"mongodb://{self.mongo_host}:{self.mongo_port}"
 
 

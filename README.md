@@ -36,6 +36,11 @@ Self-hosted Garmin Connect data server. Polls your Garmin Connect account, store
 ```bash
 git clone <this-repo>
 cd garminconnectconnect
+
+# Generate random credentials for all services
+./scripts/generate-secrets.sh
+
+# Or copy the example and fill in manually
 cp .env.example .env
 ```
 
@@ -47,6 +52,8 @@ GARMIN_PASSWORD=your_garmin_password
 ```
 
 All other defaults work out of the box. See [Configuration](#configuration) for full options.
+
+**Security note:** Running `scripts/generate-secrets.sh` generates random passwords for PostgreSQL, MongoDB, Grafana, and MCP. It preserves any existing Garmin credentials in `.env`.
 
 ### 2. Build and start infrastructure
 
@@ -102,12 +109,25 @@ The daemon polls Garmin Connect every 10 minutes (configurable via `POLL_INTERVA
 
 The daemon auto-restarts on failure.
 
-### 6. View your dashboards
+### 6. Set up TLS reverse proxy (optional but recommended)
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+```bash
+# Generate self-signed TLS certificates
+sudo ./scripts/generate-certs.sh
+
+# Link nginx config and reload
+sudo ln -sf $(pwd)/nginx/garmin-connect.conf /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+This enables HTTPS access to Grafana (`https://10.0.0.83/grafana/`) and MCP (`https://10.0.0.83/mcp/sse`).
+
+### 7. View your dashboards
+
+Open [https://10.0.0.83/grafana/](https://10.0.0.83/grafana/) (or `http://localhost:3001` from the host) in your browser.
 
 - **Username:** `admin`
-- **Password:** `admin` (or whatever you set in `GRAFANA_PASSWORD`)
+- **Password:** whatever was set in `GRAFANA_PASSWORD` (use `scripts/generate-secrets.sh` to generate)
 
 Navigate to **Dashboards > Garmin** to see the pre-built health dashboard.
 
@@ -156,33 +176,36 @@ docker compose run --rm garmin-cli <command> [options]
 
 ## MCP Server (AI/LLM Integration)
 
-The MCP server lets AI tools like Claude Code query your health data directly.
+The MCP server lets AI tools like Claude Code query your health data directly. It requires bearer token authentication when `MCP_API_KEY` is set.
 
-### Setup in Claude Code
+### Setup in Claude Code (stdio transport, local)
 
-The MCP server is configured to run via Docker. Add to your `~/.claude.json`:
-
-```json
-{
-  "mcpServers": {
-    "garmin-health": {
-      "command": "docker",
-      "args": [
-        "compose", "-f", "/path/to/garminconnectconnect/docker-compose.yml",
-        "run", "--rm", "--no-deps", "-T", "garmin-mcp"
-      ]
-    }
-  }
-}
-```
-
-Or use the CLI:
+For local access, Claude Code connects via Docker stdio — no HTTPS or bearer token needed:
 
 ```bash
 claude mcp add garmin-health -s user -- \
   docker compose -f /path/to/garminconnectconnect/docker-compose.yml \
   run --rm --no-deps -T garmin-mcp
 ```
+
+### Setup via mcporter (SSE transport, remote)
+
+For remote access (e.g., from OpenClaw), configure `~/.mcporter/mcporter.json`:
+
+```json
+{
+  "mcpServers": {
+    "garmin-health": {
+      "baseUrl": "https://10.0.0.83/mcp/sse",
+      "headers": {
+        "Authorization": "Bearer <MCP_API_KEY>"
+      }
+    }
+  }
+}
+```
+
+Replace `<MCP_API_KEY>` with the value from your `.env` file.
 
 ### Available MCP Tools
 
@@ -238,9 +261,12 @@ All configuration is via environment variables in `.env`:
 | `MONGO_HOST` | `mongodb` | MongoDB host (container name in Docker) |
 | `MONGO_PORT` | `27017` | MongoDB port |
 | `MONGO_DB` | `garmin_raw` | MongoDB database name |
+| `MONGO_ROOT_USER` | `garmin` | MongoDB root username |
+| `MONGO_ROOT_PASSWORD` | (required) | MongoDB root password |
 | `POLL_INTERVAL_MINUTES` | `10` | How often the daemon polls Garmin (minutes) |
 | `BACKFILL_DAYS` | `30` | Default days for backfill command |
-| `GRAFANA_PASSWORD` | `admin` | Grafana admin password |
+| `GRAFANA_PASSWORD` | (required) | Grafana admin password |
+| `MCP_API_KEY` | (empty) | Bearer token for MCP server auth (empty = auth disabled) |
 
 ### Changing the poll interval
 
@@ -321,12 +347,12 @@ You can also create your own dashboards — the TimescaleDB datasource is pre-co
 
 | Service | Image | Port | Purpose |
 |---------|-------|------|---------|
-| `timescaledb` | `timescale/timescaledb:latest-pg16` | 5432 | Processed health data |
-| `mongodb` | `mongo:7` | 27017 | Raw JSON archival |
-| `grafana` | `grafana/grafana:latest` | 3000 | Dashboards and visualization |
+| `timescaledb` | `timescale/timescaledb:latest-pg16` | Internal only | Processed health data |
+| `mongodb` | `mongo:7` | Internal only | Raw JSON archival |
+| `grafana` | `grafana/grafana:latest` | 127.0.0.1:3001 | Dashboards (via nginx: `/grafana/`) |
 | `garmin-server` | Built from Dockerfile | - | Polling daemon |
 | `garmin-cli` | Built from Dockerfile | - | Interactive CLI (profiles: cli) |
-| `garmin-mcp` | Built from Dockerfile | - | MCP server for AI (profiles: mcp) |
+| `garmin-mcp` | Built from Dockerfile | 127.0.0.1:8080 | MCP server (via nginx: `/mcp/`) |
 
 ### Docker Volumes
 
@@ -402,13 +428,17 @@ docker compose up -d garmin-server
 
 ### Accessing the databases directly
 
+Database ports are not exposed to the host network. Access them via Docker exec:
+
 ```bash
 # PostgreSQL / TimescaleDB
 docker compose exec timescaledb psql -U garmin garmin
 
-# MongoDB
-docker compose exec mongodb mongosh garmin_raw
+# MongoDB (with authentication)
+docker compose exec mongodb mongosh -u garmin -p "$MONGO_ROOT_PASSWORD" garmin_raw
 ```
+
+**Note:** `psql -h localhost` and `mongosh --host localhost` will not work — database ports are only accessible within the Docker network.
 
 ## Development
 
