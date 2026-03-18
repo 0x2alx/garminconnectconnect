@@ -213,17 +213,29 @@ def extract_sleep_summary(target_date: date, data: dict[str, Any]) -> SleepSumma
     )
 
 
-def extract_activity(data: dict[str, Any]) -> Activity:
-    start_time = data.get("startTimeGMT")
-    if isinstance(start_time, str):
+def _parse_garmin_timestamp(value: Any) -> datetime | None:
+    """Parse Garmin timestamps which come as 'YYYY-MM-DD HH:MM:SS', ISO format, or epoch ms."""
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return _ts_to_dt(int(value))
+    if isinstance(value, str):
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f"):
+            try:
+                return datetime.strptime(value, fmt).replace(tzinfo=timezone.utc)
+            except ValueError:
+                continue
         try:
-            start_time = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
         except ValueError:
-            start_time = None
-    elif isinstance(start_time, (int, float)):
-        start_time = _ts_to_dt(int(start_time))
-    else:
-        start_time = None
+            return None
+    return None
+
+
+def extract_activity(data: dict[str, Any]) -> Activity:
+    start_time = _parse_garmin_timestamp(data.get("startTimeGMT"))
+    if start_time is None:
+        start_time = _parse_garmin_timestamp(data.get("beginTimestamp"))
 
     return Activity(
         activity_id=str(data["activityId"]),
