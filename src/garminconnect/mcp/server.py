@@ -63,11 +63,23 @@ def create_mcp_server(postgres_url: str) -> FastMCP:
                 return [{"error": f"Query failed: {e}"}]
 
     @mcp.tool()
-    def get_health_summary(days: int = 7) -> dict[str, Any]:
-        """Get a comprehensive health summary for the last N days."""
-        end = date.today()
-        start = end - timedelta(days=days)
-        summary: dict[str, Any] = {}
+    def get_health_summary(period: str = "week") -> dict[str, Any]:
+        """Get a comprehensive health summary for a Garmin-aligned period.
+
+        Args:
+            period: "week", "4weeks", "month", "month-1", "year", or a
+                    number like "30" for arbitrary day counts. Periods use
+                    Garmin's Monday-to-Sunday week convention and exclude
+                    today (partial day).
+        """
+        from garminconnect.utils.date_ranges import garmin_date_range
+
+        try:
+            start, end = garmin_date_range(period)
+        except ValueError as e:
+            return {"error": str(e)}
+
+        summary: dict[str, Any] = {"period": {"start": start.isoformat(), "end": end.isoformat()}}
         with engine.connect() as conn:
             row = conn.execute(text(
                 "SELECT AVG(total_steps) AS avg_steps, AVG(total_calories) AS avg_calories, "
@@ -84,8 +96,8 @@ def create_mcp_server(postgres_url: str) -> FastMCP:
                 summary["sleep_averages"] = dict(row._mapping)
             row = conn.execute(text(
                 "SELECT COUNT(*) AS count, SUM(distance_meters)/1000.0 AS total_km, "
-                "SUM(calories) AS total_calories FROM activities WHERE start_time >= :s"
-            ), {"s": start.isoformat()}).fetchone()
+                "SUM(calories) AS total_calories FROM activities WHERE start_time >= :s AND start_time < :e"
+            ), {"s": start.isoformat(), "e": (end + timedelta(days=1)).isoformat()}).fetchone()
             if row:
                 summary["activities"] = dict(row._mapping)
         return summary

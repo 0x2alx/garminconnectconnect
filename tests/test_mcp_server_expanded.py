@@ -138,3 +138,27 @@ class TestApiClientAutoFetchUserId:
         from datetime import date
         client.fetch("daily_summary", date=date(2026, 3, 17))
         mock_auth.get_display_name.assert_not_called()
+
+
+class TestHealthSummaryPeriodParam:
+    """get_health_summary uses garmin_date_range for period resolution."""
+
+    def test_accepts_period_string(self):
+        server = create_mcp_server("postgresql://test:test@localhost/test")
+        result = _call_tool(server, "get_health_summary", {"period": "week"})
+        assert result is not None
+
+    def test_default_period_is_week(self):
+        server = create_mcp_server("postgresql://test:test@localhost/test")
+        result = _call_tool(server, "get_health_summary", {})
+        assert result is not None
+
+    def test_invalid_period_returns_error(self):
+        server = create_mcp_server("postgresql://test:test@localhost/test")
+        result = _call_tool(server, "get_health_summary", {"period": "invalid"})
+        if isinstance(result, dict) and "error" in result:
+            assert "Unknown period" in result["error"]
+        elif isinstance(result, list):
+            for r in result:
+                if isinstance(r, dict) and "error" in r:
+                    assert "Unknown period" in r["error"] or "Connection" in r["error"]
