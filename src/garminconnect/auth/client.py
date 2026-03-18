@@ -27,6 +27,22 @@ class GarminAuth:
     def connectapi(self, endpoint: str, params: dict[str, Any] | None = None) -> Any:
         return garth.connectapi(endpoint, params=params)
 
+    def get_display_name(self) -> str:
+        """Get the Garmin Connect display name / profile ID for API URLs.
+
+        Garmin endpoints use the socialProfile displayName (a UUID) for
+        user-scoped URLs like daily summary, heart rate, and sleep.
+        """
+        try:
+            profile = garth.connectapi("/userprofile-service/socialProfile")
+            display_name = profile.get("displayName", "")
+            if display_name:
+                logger.info("fetched_user_id", display_name=display_name)
+                return display_name
+        except Exception as e:
+            logger.warning("failed_to_fetch_display_name", error=str(e))
+        return garth.client.username
+
     def ensure_authenticated(self, email: str = "", password: str = "") -> None:
         try:
             self.resume()

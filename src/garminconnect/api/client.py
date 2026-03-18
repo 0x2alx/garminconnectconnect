@@ -32,6 +32,8 @@ class GarminAPIClient:
         if end:
             replacements["{end}"] = end.isoformat()
         if endpoint.requires_user_id:
+            if not self.user_id:
+                self.user_id = self.auth.get_display_name()
             replacements["{user_id}"] = self.user_id
         if activity_id:
             replacements["{activity_id}"] = activity_id

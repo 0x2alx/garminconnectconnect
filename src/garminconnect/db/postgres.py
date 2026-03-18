@@ -1,9 +1,12 @@
 from __future__ import annotations
+import structlog
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 from garminconnect.config import settings
 from garminconnect.models.base import Base
+
+logger = structlog.get_logger()
 import garminconnect.models.daily
 import garminconnect.models.monitoring
 import garminconnect.models.sleep
@@ -36,7 +39,8 @@ def create_engine_and_tables(url: str | None = None) -> tuple[Engine, sessionmak
                     )
                 )
                 conn.commit()
-            except Exception:
+            except Exception as e:
+                logger.warning("hypertable_creation_failed", table=table_name, error=str(e))
                 conn.rollback()
     factory = sessionmaker(engine)
     return engine, factory

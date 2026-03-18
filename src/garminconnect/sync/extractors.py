@@ -28,7 +28,7 @@ def extract_daily_summary(target_date: date, data: dict[str, Any]) -> DailySumma
         floors_goal=data.get("floorsAscendedGoal"),
         moderate_intensity_minutes=data.get("moderateIntensityMinutes"),
         vigorous_intensity_minutes=data.get("vigorousIntensityMinutes"),
-        intensity_minutes=(data.get("moderateIntensityMinutes") or 0) + (data.get("vigorousIntensityMinutes") or 0) or None,
+        intensity_minutes=(data.get("moderateIntensityMinutes") or 0) + (data.get("vigorousIntensityMinutes") or 0) if data.get("moderateIntensityMinutes") is not None or data.get("vigorousIntensityMinutes") is not None else None,
         resting_heart_rate=data.get("restingHeartRate"),
         min_heart_rate=data.get("minHeartRate"),
         max_heart_rate=data.get("maxHeartRate"),
@@ -213,26 +213,52 @@ def extract_sleep_summary(target_date: date, data: dict[str, Any]) -> SleepSumma
     )
 
 
-def extract_activity(data: dict[str, Any]) -> Activity:
-    start_time = data.get("startTimeGMT")
-    if isinstance(start_time, str):
+def _parse_garmin_timestamp(value: Any) -> datetime | None:
+    """Parse Garmin timestamps which come as 'YYYY-MM-DD HH:MM:SS', ISO format, or epoch ms."""
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return _ts_to_dt(int(value))
+    if isinstance(value, str):
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f"):
+            try:
+                return datetime.strptime(value, fmt).replace(tzinfo=timezone.utc)
+            except ValueError:
+                continue
         try:
-            start_time = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
         except ValueError:
-            start_time = None
-    elif isinstance(start_time, (int, float)):
-        start_time = _ts_to_dt(int(start_time))
-    else:
-        start_time = None
+            return None
+    return None
+
+
+def _safe_int(value: Any) -> int | None:
+    """Safely convert a value to int, returning None on failure."""
+    if value is None:
+        return None
+    try:
+        return int(float(value))
+    except (ValueError, TypeError):
+        return None
+
+
+def extract_activity(data: dict[str, Any]) -> Activity:
+    start_time = _parse_garmin_timestamp(data.get("startTimeGMT"))
+    if start_time is None:
+        start_time = _parse_garmin_timestamp(data.get("beginTimestamp"))
+
+    activity_id = data.get("activityId")
+    if activity_id is None:
+        raise ValueError("Activity data missing required 'activityId' field")
 
     return Activity(
-        activity_id=str(data["activityId"]),
+        activity_id=str(activity_id),
         activity_type=data.get("activityType", {}).get("typeKey") if isinstance(data.get("activityType"), dict) else data.get("activityType"),
         sport=data.get("sportTypeId"),
         name=data.get("activityName"),
         start_time=start_time,
-        duration_seconds=int(float(data["duration"])) if data.get("duration") else None,
-        elapsed_seconds=int(float(data["elapsedDuration"])) if data.get("elapsedDuration") else None,
+        duration_seconds=_safe_int(data.get("duration")),
+        elapsed_seconds=_safe_int(data.get("elapsedDuration")),
         distance_meters=data.get("distance"),
         calories=data.get("calories"),
         avg_heart_rate=data.get("averageHR"),
