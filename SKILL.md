@@ -1,98 +1,72 @@
 ---
 name: garmin-health-data
-description: Query Garmin Connect health and fitness data from a TimescaleDB database. Access heart rate, sleep, stress, body battery, HRV, activities, SpO2, respiration, and body composition.
+description: Query Garmin Connect health and fitness data via MCP server. Access heart rate, sleep, stress, body battery, HRV, activities, SpO2, respiration, and body composition.
 homepage: https://github.com/0x2alx/garminconnectconnect
-metadata: {"clawdbot":{"emoji":"⌚","requires":{"bins":["psql"]}}}
+metadata: {"clawdbot":{"emoji":"⌚","requires":{"bins":["mcporter"]}}}
 ---
 
 # Garmin Health Data
 
-You have access to a Garmin Connect health database on TimescaleDB at `10.0.0.83:5432`. Data is synced from Garmin Connect every 10 minutes.
+You have access to a Garmin Connect health database via the `garmin-health` MCP server. Data is synced from Garmin Connect every 10 minutes and stored in TimescaleDB.
 
-## How to Query
+## Available Tools
 
-Use `psql` to run SQL queries:
+### get_health_summary
+Get a comprehensive health summary for the last N days. Pass `--days` (default 7). Returns daily averages (steps, calories, RHR, stress, SpO2), sleep averages, and activity totals.
 
-```bash
-PGPASSWORD=garmin_secret psql -h 10.0.0.83 -p 5432 -U garmin -d garmin -t -A -c "YOUR SQL HERE"
-```
+### query_health_data
+Run pre-built health queries. Pass `--query_name`, `--start_date` (YYYY-MM-DD), `--end_date` (YYYY-MM-DD), `--limit`.
 
-Flags: `-t` (tuples only, no headers), `-A` (unaligned output). Add `-F ','` for CSV output. Drop `-t -A` if you want formatted table output.
+Available queries:
+- `daily_overview` — steps, calories, resting HR, stress, body battery, SpO2
+- `sleep_trend` — hours slept by stage (deep/light/REM), sleep score
+- `hr_intraday` — per-minute heart rate readings
+- `stress_intraday` — per-3-minute stress levels
+- `activity_list` — recent activities with distance, duration, HR, calories
+- `training_readiness_trend` — readiness score with sleep/recovery/HRV breakdown
+- `hrv_trend` — HRV weekly average and last night average
+- `body_composition_trend` — weight and body fat percentage
 
-## Available Tables
+### execute_sql
+Run custom read-only SQL queries against the health database. Only SELECT/WITH statements allowed.
 
-| Table | What it contains | Key columns |
-|-------|-----------------|-------------|
-| `daily_summary` | One row per day | `date`, `total_steps`, `total_calories`, `resting_heart_rate`, `avg_stress`, `body_battery_high`, `body_battery_low`, `avg_spo2`, `floors_climbed` |
-| `heart_rate` | Per-minute HR | `timestamp`, `heart_rate` |
-| `stress` | Per-3-min stress | `timestamp`, `stress_level` (0-100) |
-| `body_battery` | Per-3-min battery | `timestamp`, `level` (0-100) |
-| `spo2` | Hourly SpO2 | `timestamp`, `spo2` |
-| `respiration` | Per-2-min breathing | `timestamp`, `respiration_rate` |
-| `sleep_summary` | One per night | `date`, `total_sleep_seconds`, `deep_sleep_seconds`, `light_sleep_seconds`, `rem_sleep_seconds`, `sleep_score`, `avg_hrv` |
-| `activities` | Per activity | `activity_id`, `activity_type`, `name`, `start_time`, `duration_seconds`, `distance_meters`, `avg_heart_rate`, `max_heart_rate`, `calories` |
-| `hrv` | Daily HRV | `date`, `weekly_avg`, `last_night_avg`, `status` |
-| `training_readiness` | Daily readiness | `date`, `score`, `level`, `sleep_score`, `recovery_score`, `hrv_score` |
-| `body_composition` | Per weigh-in | `date`, `weight_kg`, `body_fat_pct`, `muscle_mass_kg` |
-| `training_status` | Daily status | `date`, `training_status`, `weekly_load`, `vo2max_running`, `fitness_age` |
+### list_tables
+List all health data tables and their row counts.
 
-## Common Queries
+### get_table_schema
+Get column names and types for a specific table. Pass `--table_name`.
 
-### Health summary (last 7 days)
-```bash
-PGPASSWORD=garmin_secret psql -h 10.0.0.83 -U garmin -d garmin -c "
-SELECT date, total_steps, total_calories, resting_heart_rate, avg_stress, body_battery_high, avg_spo2
-FROM daily_summary WHERE date >= CURRENT_DATE - 7 ORDER BY date DESC;"
-```
+### get_sync_status
+Check when each metric was last synced.
 
-### Sleep trend
-```bash
-PGPASSWORD=garmin_secret psql -h 10.0.0.83 -U garmin -d garmin -c "
-SELECT date, total_sleep_seconds/3600.0 AS hours, deep_sleep_seconds/3600.0 AS deep_hrs,
-       rem_sleep_seconds/3600.0 AS rem_hrs, sleep_score
-FROM sleep_summary WHERE date >= CURRENT_DATE - 14 ORDER BY date DESC;"
-```
+## Usage Examples
 
-### Recent activities
-```bash
-PGPASSWORD=garmin_secret psql -h 10.0.0.83 -U garmin -d garmin -c "
-SELECT start_time, activity_type, name, duration_seconds/60 AS mins,
-       distance_meters/1000.0 AS km, avg_heart_rate, calories
-FROM activities ORDER BY start_time DESC LIMIT 10;"
-```
+**General health check:**
+Use `get_health_summary` with `--days 7`
 
-### HRV trend
-```bash
-PGPASSWORD=garmin_secret psql -h 10.0.0.83 -U garmin -d garmin -c "
-SELECT date, weekly_avg, last_night_avg, status FROM hrv
-WHERE date >= CURRENT_DATE - 30 ORDER BY date DESC;"
-```
+**Sleep analysis:**
+Use `query_health_data` with `--query_name sleep_trend --start_date 2026-03-01 --end_date 2026-03-18`
 
-### Training readiness
-```bash
-PGPASSWORD=garmin_secret psql -h 10.0.0.83 -U garmin -d garmin -c "
-SELECT date, score, level, sleep_score, recovery_score, hrv_score
-FROM training_readiness WHERE date >= CURRENT_DATE - 7 ORDER BY date DESC;"
-```
+**Last activities:**
+Use `query_health_data` with `--query_name activity_list --limit 10`
 
-### Intraday heart rate (specific day)
-```bash
-PGPASSWORD=garmin_secret psql -h 10.0.0.83 -U garmin -d garmin -c "
-SELECT timestamp, heart_rate FROM heart_rate
-WHERE timestamp::date = '2026-03-17' ORDER BY timestamp;"
-```
+**Training readiness:**
+Use `query_health_data` with `--query_name training_readiness_trend --start_date 2026-03-11 --end_date 2026-03-18`
 
-### Body composition trend
-```bash
-PGPASSWORD=garmin_secret psql -h 10.0.0.83 -U garmin -d garmin -c "
-SELECT date, weight_kg, body_fat_pct, muscle_mass_kg FROM body_composition ORDER BY date DESC;"
-```
+**Custom query:**
+Use `execute_sql` with `--query "SELECT date, total_steps, resting_heart_rate FROM daily_summary WHERE date >= CURRENT_DATE - 7 ORDER BY date DESC"`
 
-## Tips
+## Data Granularity
 
-- Use `CURRENT_DATE` and `CURRENT_DATE - N` for relative date ranges
-- Cast timestamps to date with `::date` for filtering by day
-- Use `AVG()`, `MIN()`, `MAX()` for aggregations
-- Use `ROUND(value::numeric, 1)` to format decimal output
-- Intraday tables (heart_rate, stress, body_battery, respiration, spo2) can be large — always filter by date range
-- The database is read-only for analysis — do not INSERT/UPDATE/DELETE
+| Metric | Resolution |
+|--------|-----------|
+| Heart Rate | ~1 per minute |
+| Stress | ~3 minutes, 0-100 scale |
+| Body Battery | ~3 minutes, 0-100 scale |
+| SpO2 | Hourly averages, mostly overnight |
+| Respiration | ~2 minutes, breaths/min |
+| Sleep | Per night with stage breakdown |
+| Daily Summary | 1 per day |
+| HRV | 1 per day |
+| Activities | Per activity with GPS trackpoints |
+| Body Composition | Per weigh-in |
