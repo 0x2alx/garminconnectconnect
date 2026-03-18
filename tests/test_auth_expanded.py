@@ -28,8 +28,15 @@ class TestEnsureAuthenticated:
 
 
 class TestGetDisplayName:
-    def test_returns_username(self):
+    def test_returns_social_display_name(self):
         with patch("garminconnect.auth.client.garth") as mock_garth:
-            mock_garth.client.username = "johndoe123"
+            mock_garth.connectapi.return_value = {"displayName": "abc-uuid-123"}
             auth = GarminAuth()
-            assert auth.get_display_name() == "johndoe123"
+            assert auth.get_display_name() == "abc-uuid-123"
+
+    def test_falls_back_to_username_on_error(self):
+        with patch("garminconnect.auth.client.garth") as mock_garth:
+            mock_garth.connectapi.side_effect = Exception("API error")
+            mock_garth.client.username = "fallback@email.com"
+            auth = GarminAuth()
+            assert auth.get_display_name() == "fallback@email.com"

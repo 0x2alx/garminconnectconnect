@@ -16,7 +16,7 @@ class GarminScheduler:
         today = date.today()
         yesterday = today - timedelta(days=1)
         logger.info("sync_cycle_start")
-        self.pipeline.sync_date(yesterday)
+        self.pipeline.sync_date(yesterday, force=True)
         self.pipeline.sync_date(today, force=True)
         self.pipeline.sync_activities(limit=10)
         self.pipeline.sync_body_composition(yesterday, today)
