@@ -70,7 +70,7 @@ QUERY_TEMPLATES = {
                    AVG(resting_heart_rate) AS avg_rhr, AVG(avg_stress) AS avg_stress,
                    AVG(avg_spo2) AS avg_spo2, COUNT(*) AS days
             FROM daily_summary
-            WHERE date BETWEEN (:start::date - 7) AND (:end::date - 7)
+            WHERE date BETWEEN (CAST(:start AS date) - 7) AND (CAST(:end AS date) - 7)
         )
         SELECT 'this_week' AS period, * FROM this_week
         UNION ALL
