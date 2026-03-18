@@ -3,11 +3,48 @@ from datetime import date, timedelta
 from typing import Any
 from fastmcp import FastMCP
 from sqlalchemy import create_engine, text
+from starlette.middleware import Middleware
+from starlette.responses import JSONResponse
+from starlette.types import ASGIApp, Receive, Scope, Send
 from garminconnect.mcp.tools import QUERY_TEMPLATES, get_table_list
 
 
-def create_mcp_server(postgres_url: str) -> FastMCP:
+class BearerAuthMiddleware:
+    """ASGI middleware that validates Bearer token authentication."""
+
+    def __init__(self, app: ASGIApp, api_key: str = "") -> None:
+        self.app = app
+        self.api_key = api_key
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] not in ("http", "websocket") or not self.api_key:
+            await self.app(scope, receive, send)
+            return
+
+        headers = dict(scope.get("headers", []))
+        auth_header = headers.get(b"authorization", b"").decode()
+
+        if auth_header == f"Bearer {self.api_key}":
+            await self.app(scope, receive, send)
+            return
+
+        # Return 401 for HTTP requests
+        if scope["type"] == "http":
+            response = JSONResponse(
+                {"error": "Unauthorized", "detail": "Valid Bearer token required"},
+                status_code=401,
+            )
+            await response(scope, receive, send)
+            return
+
+        # For websocket, just close
+        await send({"type": "websocket.close", "code": 4001})
+
+
+def create_mcp_server(postgres_url: str, api_key: str = "") -> FastMCP:
     mcp = FastMCP("Garmin Health Data")
+    if api_key:
+        mcp.add_middleware(Middleware(BearerAuthMiddleware, api_key=api_key))
     engine = create_engine(postgres_url, pool_pre_ping=True)
 
     @mcp.tool()

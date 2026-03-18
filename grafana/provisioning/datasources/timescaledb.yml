@@ -8,7 +8,7 @@ datasources:
     database: garmin
     user: garmin
     secureJsonData:
-      password: garmin_secret
+      password: $POSTGRES_PASSWORD
     jsonData:
       sslmode: disable
       maxOpenConns: 10
