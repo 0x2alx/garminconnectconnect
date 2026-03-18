@@ -57,6 +57,66 @@ QUERY_TEMPLATES = {
         WHERE timestamp >= :start AND timestamp < :end
         ORDER BY timestamp
     """,
+    "weekly_comparison": """
+        WITH this_week AS (
+            SELECT AVG(total_steps) AS avg_steps, AVG(total_calories) AS avg_calories,
+                   AVG(resting_heart_rate) AS avg_rhr, AVG(avg_stress) AS avg_stress,
+                   AVG(avg_spo2) AS avg_spo2, COUNT(*) AS days
+            FROM daily_summary
+            WHERE date BETWEEN :start AND :end
+        ),
+        last_week AS (
+            SELECT AVG(total_steps) AS avg_steps, AVG(total_calories) AS avg_calories,
+                   AVG(resting_heart_rate) AS avg_rhr, AVG(avg_stress) AS avg_stress,
+                   AVG(avg_spo2) AS avg_spo2, COUNT(*) AS days
+            FROM daily_summary
+            WHERE date BETWEEN (:start::date - 7) AND (:end::date - 7)
+        )
+        SELECT 'this_week' AS period, * FROM this_week
+        UNION ALL
+        SELECT 'last_week' AS period, * FROM last_week
+    """,
+    "activity_detail": """
+        SELECT activity_id, activity_type, start_time,
+               duration_seconds, distance_meters/1000.0 AS distance_km,
+               avg_heart_rate, max_heart_rate, calories,
+               avg_speed, max_speed, avg_cadence,
+               training_effect_aerobic, training_effect_anaerobic,
+               vo2max_value, elevation_gain
+        FROM activities
+        WHERE start_time BETWEEN :start AND :end
+        ORDER BY start_time DESC
+        LIMIT :limit
+    """,
+    "personal_records": """
+        SELECT activity_type,
+               COUNT(*) AS total_activities,
+               MAX(distance_meters)/1000.0 AS longest_km,
+               MAX(calories) AS most_calories,
+               MAX(avg_heart_rate) AS highest_avg_hr,
+               MIN(duration_seconds) FILTER (WHERE distance_meters > 1000) AS fastest_1k_plus_seconds,
+               MAX(elevation_gain) AS most_elevation
+        FROM activities
+        WHERE start_time BETWEEN :start AND :end
+        GROUP BY activity_type
+        ORDER BY total_activities DESC
+        LIMIT :limit
+    """,
+    "recovery_analysis": """
+        SELECT ds.date,
+               ds.resting_heart_rate, ds.avg_stress, ds.body_battery_high, ds.body_battery_low,
+               ss.total_sleep_seconds/3600.0 AS sleep_hours, ss.sleep_score,
+               h.weekly_avg AS hrv_weekly, h.last_night_avg AS hrv_last_night,
+               tr.score AS readiness_score, tr.sleep_score AS readiness_sleep,
+               tr.recovery_score AS readiness_recovery
+        FROM daily_summary ds
+        LEFT JOIN sleep_summary ss ON ds.date = ss.date
+        LEFT JOIN hrv h ON ds.date = h.date
+        LEFT JOIN training_readiness tr ON ds.date = tr.date
+        WHERE ds.date BETWEEN :start AND :end
+        ORDER BY ds.date DESC
+        LIMIT :limit
+    """,
 }
 
 

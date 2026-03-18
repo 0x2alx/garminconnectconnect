@@ -144,6 +144,72 @@ def login() -> None:
         sys.exit(1)
 
 
+@cli.command("sync-one")
+@click.option("--endpoint", required=True, help="Endpoint name (e.g., daily_summary, heart_rate, stress)")
+@click.option("--date", "target_date", required=True, help="Date to sync (YYYY-MM-DD)")
+@click.option("--force", is_flag=True, help="Re-sync even if already completed")
+def sync_one(endpoint: str, target_date: str, force: bool) -> None:
+    """Sync a single endpoint for a single date."""
+    import sys
+
+    from garminconnect.auth.client import GarminAuth
+    from garminconnect.api.client import GarminAPIClient
+    from garminconnect.db import create_engine_and_tables, get_mongo_db, HealthRepository
+    from garminconnect.sync.pipeline import SyncPipeline, DAILY_SYNC_ENDPOINTS
+
+    # Validate endpoint name
+    valid_endpoints = list(DAILY_SYNC_ENDPOINTS) + ["body_composition", "weight", "activities"]
+    if endpoint not in valid_endpoints:
+        click.echo(f"Unknown endpoint: {endpoint}", err=True)
+        click.echo(f"Valid endpoints: {', '.join(valid_endpoints)}", err=True)
+        sys.exit(1)
+
+    # Parse the date
+    try:
+        parsed_date = date.fromisoformat(target_date)
+    except ValueError:
+        click.echo(f"Invalid date format: {target_date}. Use YYYY-MM-DD.", err=True)
+        sys.exit(1)
+
+    # Authenticate
+    auth = GarminAuth(token_dir=settings.garmin_token_dir)
+    try:
+        auth.ensure_authenticated(settings.garmin_email, settings.garmin_password)
+    except Exception as e:
+        click.echo(f"Authentication failed: {e}", err=True)
+        click.echo(
+            "Run 'docker compose run --rm garmin-cli login' first to authenticate.",
+            err=True,
+        )
+        sys.exit(1)
+
+    # Set up pipeline
+    _, session_factory = create_engine_and_tables()
+    mongo_db = get_mongo_db()
+    repo = HealthRepository(session_factory=session_factory, mongo_db=mongo_db)
+    api = GarminAPIClient(auth=auth)
+    pipeline = SyncPipeline(api_client=api, repository=repo)
+
+    # Sync
+    click.echo(f"Syncing {endpoint} for {parsed_date}...")
+    if endpoint == "activities":
+        synced = pipeline.sync_activities(limit=20)
+        click.echo(f"Synced {len(synced)} activities.")
+    elif endpoint in ("body_composition", "weight"):
+        count = pipeline.sync_body_composition(parsed_date, parsed_date)
+        click.echo(f"Synced {count} body composition entries.")
+    else:
+        results = pipeline.sync_date(parsed_date, endpoints=[endpoint], force=force)
+        status = results.get(endpoint, "unknown")
+        if status == "completed":
+            click.echo(f"Successfully synced {endpoint} for {parsed_date}.")
+        elif status == "skipped":
+            click.echo(f"Already synced {endpoint} for {parsed_date}. Use --force to re-sync.")
+        else:
+            click.echo(f"Failed to sync {endpoint} for {parsed_date}.", err=True)
+            sys.exit(1)
+
+
 @cli.command()
 def status() -> None:
     """Show sync status."""

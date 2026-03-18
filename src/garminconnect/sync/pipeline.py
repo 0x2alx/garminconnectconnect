@@ -1,7 +1,9 @@
 from __future__ import annotations
+import logging
 from datetime import date, timedelta
 from typing import Any
 import structlog
+from tenacity import retry, stop_after_attempt, wait_exponential, before_sleep_log
 from garminconnect.api.client import GarminAPIClient
 from garminconnect.db.repository import HealthRepository
 from garminconnect.sync.extractors import (
@@ -32,10 +34,23 @@ DAILY_SYNC_ENDPOINTS = [
 ]
 
 
+_retry_logger = logging.getLogger("garminconnect.sync.pipeline")
+
+
 class SyncPipeline:
     def __init__(self, api_client: GarminAPIClient, repository: HealthRepository):
         self.api = api_client
         self.repo = repository
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=5, max=120),
+        before_sleep=before_sleep_log(_retry_logger, logging.WARNING),
+        reraise=True,
+    )
+    def _fetch_with_retry(self, endpoint_name: str, **kwargs: Any) -> Any:
+        """Fetch from the Garmin API with exponential-backoff retry."""
+        return self.api.fetch(endpoint_name, **kwargs)
 
     def sync_date(self, target_date: date, endpoints: list[str] | None = None, force: bool = False) -> dict[str, str]:
         results: dict[str, str] = {}
@@ -45,7 +60,7 @@ class SyncPipeline:
                 logger.debug("skipping_completed", endpoint=endpoint_name, date=target_date.isoformat())
                 continue
             try:
-                raw_data = self.api.fetch(endpoint_name, date=target_date)
+                raw_data = self._fetch_with_retry(endpoint_name, date=target_date)
                 self.repo.store_raw(endpoint_name, target_date, raw_data)
 
                 # Extract body battery from stress response (same endpoint)
@@ -78,7 +93,7 @@ class SyncPipeline:
         """Sync weight/body composition for a date range."""
         count = 0
         try:
-            raw_data = self.api.fetch("weight", start=start_date, end=end_date)
+            raw_data = self._fetch_with_retry("weight", start=start_date, end=end_date)
             if raw_data:
                 self.repo.store_raw("weight", end_date, raw_data)
                 entries = extract_body_composition(end_date, raw_data)
@@ -95,7 +110,7 @@ class SyncPipeline:
         offset = start
         try:
             while len(synced_ids) < max_activities:
-                raw_list = self.api.fetch("activity_list", params={"limit": limit, "start": offset})
+                raw_list = self._fetch_with_retry("activity_list", params={"limit": limit, "start": offset})
                 if not raw_list:
                     break
                 activities = raw_list if isinstance(raw_list, list) else raw_list.get("activities", raw_list)

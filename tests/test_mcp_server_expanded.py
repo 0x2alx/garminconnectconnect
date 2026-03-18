@@ -21,7 +21,10 @@ class TestQueryTemplates:
             assert isinstance(template, str), f"{name} template is not a string"
 
     def test_known_templates_exist(self):
-        expected = {"daily_overview", "sleep_trend", "hr_intraday", "activity_list"}
+        expected = {
+            "daily_overview", "sleep_trend", "hr_intraday", "activity_list",
+            "weekly_comparison", "activity_detail", "personal_records", "recovery_analysis",
+        }
         assert expected.issubset(set(QUERY_TEMPLATES.keys()))
 
 
