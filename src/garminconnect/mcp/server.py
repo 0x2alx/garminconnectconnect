@@ -36,13 +36,35 @@ def create_mcp_server(postgres_url: str) -> FastMCP:
             return {row[0]: row[1] for row in rows}
 
     @mcp.tool()
-    def query_health_data(query_name: str, start_date: str = "", end_date: str = "", limit: int = 30) -> list[dict]:
-        """Run a pre-built health data query. Available: daily_overview, sleep_trend, hr_intraday, activity_list, training_readiness_trend, hrv_trend, body_composition_trend, stress_intraday."""
+    def query_health_data(query_name: str, start_date: str = "", end_date: str = "", period: str = "", limit: int = 30) -> list[dict]:
+        """Run a pre-built health data query.
+
+        Available: daily_overview, sleep_trend, hr_intraday, activity_list,
+        training_readiness_trend, hrv_trend, body_composition_trend, stress_intraday.
+
+        Args:
+            query_name: Name of the query template.
+            start_date: Explicit start (YYYY-MM-DD). Ignored if period is set.
+            end_date: Explicit end (YYYY-MM-DD). Ignored if period is set.
+            period: Garmin-aligned period — "week", "4weeks", "month",
+                    "month-1", "year", or a number like "30". Overrides
+                    start_date/end_date.
+            limit: Max rows for activity_list (default 30).
+        """
         template = QUERY_TEMPLATES.get(query_name)
         if not template:
             return [{"error": f"Unknown query. Available: {list(QUERY_TEMPLATES.keys())}"}]
-        end = date.fromisoformat(end_date) if end_date else date.today()
-        start = date.fromisoformat(start_date) if start_date else end - timedelta(days=7)
+
+        if period:
+            from garminconnect.utils.date_ranges import garmin_date_range
+            try:
+                start, end = garmin_date_range(period)
+            except ValueError as e:
+                return [{"error": str(e)}]
+        else:
+            end = date.fromisoformat(end_date) if end_date else date.today() - timedelta(days=1)
+            start = date.fromisoformat(start_date) if start_date else end - timedelta(days=6)
+
         with engine.connect() as conn:
             result = conn.execute(text(template), {"start": start.isoformat(), "end": end.isoformat(), "limit": limit})
             return [dict(row._mapping) for row in result.fetchall()]

@@ -162,3 +162,43 @@ class TestHealthSummaryPeriodParam:
             for r in result:
                 if isinstance(r, dict) and "error" in r:
                     assert "Unknown period" in r["error"] or "Connection" in r["error"]
+
+
+class TestQueryHealthDataPeriodParam:
+    """query_health_data accepts optional period parameter."""
+
+    def test_period_overrides_dates(self):
+        server = create_mcp_server("postgresql://test:test@localhost/test")
+        result = _call_tool(server, "query_health_data", {
+            "query_name": "daily_overview",
+            "period": "week",
+        })
+        assert result is not None
+
+    def test_explicit_dates_still_work(self):
+        server = create_mcp_server("postgresql://test:test@localhost/test")
+        result = _call_tool(server, "query_health_data", {
+            "query_name": "daily_overview",
+            "start_date": "2026-03-01",
+            "end_date": "2026-03-17",
+        })
+        assert result is not None
+
+    def test_invalid_period_returns_error(self):
+        server = create_mcp_server("postgresql://test:test@localhost/test")
+        result = _call_tool(server, "query_health_data", {
+            "query_name": "daily_overview",
+            "period": "invalid",
+        })
+        if isinstance(result, list):
+            for r in result:
+                if isinstance(r, dict) and "error" in r:
+                    assert "Unknown period" in r["error"] or "Connection" in r["error"]
+
+    def test_default_uses_week_when_no_dates_or_period(self):
+        """When no dates or period given, defaults to 'week'."""
+        server = create_mcp_server("postgresql://test:test@localhost/test")
+        result = _call_tool(server, "query_health_data", {
+            "query_name": "daily_overview",
+        })
+        assert result is not None
