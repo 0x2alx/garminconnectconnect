@@ -36,6 +36,9 @@ docker-compose.override.yml
 # Garmin tokens
 .garminconnect/
 
+# Claude Code
+.claude/
+
 # OS
 .DS_Store
 Thumbs.db

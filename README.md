@@ -111,20 +111,22 @@ The daemon auto-restarts on failure.
 
 ### 6. Set up TLS reverse proxy (optional but recommended)
 
+First, edit `nginx/garmin-connect.conf` and replace `YOUR_HOST_IP` with your server's IP address. Then:
+
 ```bash
 # Generate self-signed TLS certificates
-sudo ./scripts/generate-certs.sh
+sudo ./scripts/generate-certs.sh YOUR_HOST_IP
 
 # Link nginx config and reload
 sudo ln -sf $(pwd)/nginx/garmin-connect.conf /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-This enables HTTPS access to Grafana (`https://10.0.0.83/grafana/`) and MCP (`https://10.0.0.83/mcp/sse`).
+This enables HTTPS access to Grafana (`https://YOUR_HOST_IP/grafana/`) and MCP (`https://YOUR_HOST_IP/mcp/sse`).
 
 ### 7. View your dashboards
 
-Open [https://10.0.0.83/grafana/](https://10.0.0.83/grafana/) (or `http://localhost:3001` from the host) in your browser.
+Open [https://YOUR_HOST_IP/grafana/](https://YOUR_HOST_IP/grafana/) (or `http://localhost:3001` from the host) in your browser.
 
 - **Username:** `admin`
 - **Password:** whatever was set in `GRAFANA_PASSWORD` (use `scripts/generate-secrets.sh` to generate)
@@ -196,7 +198,7 @@ For remote access (e.g., from OpenClaw), configure `~/.mcporter/mcporter.json`:
 {
   "mcpServers": {
     "garmin-health": {
-      "baseUrl": "https://10.0.0.83/mcp/sse",
+      "baseUrl": "https://YOUR_HOST_IP/mcp/sse",
       "headers": {
         "Authorization": "Bearer <MCP_API_KEY>"
       }

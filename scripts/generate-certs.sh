@@ -2,10 +2,11 @@
 set -euo pipefail
 
 # Generates self-signed TLS certificates for the garmin-connect reverse proxy.
-# Certificates are valid for 10 years with 10.0.0.83 as CN/SAN.
+# Certificates are valid for 10 years with the host IP as CN/SAN.
+# Usage: sudo ./generate-certs.sh [HOST_IP]
 
 SSL_DIR="/etc/nginx/ssl"
-HOST_IP="10.0.0.83"
+HOST_IP="${1:?Usage: $0 <HOST_IP>  (e.g., $0 192.168.1.100)}"
 
 if [ "$(id -u)" -ne 0 ]; then
     echo "This script must be run as root (writes to /etc/nginx/ssl)."
