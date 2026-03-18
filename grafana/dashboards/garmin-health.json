@@ -6,19 +6,25 @@
   "links": [],
   "panels": [
     {
+      "id": 1,
       "title": "Daily Steps",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "TimescaleDB" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": { "mode": "thresholds" },
           "custom": {
             "drawStyle": "bars",
-            "fillOpacity": 50,
-            "gradientMode": "scheme"
+            "fillOpacity": 60,
+            "gradientMode": "scheme",
+            "barAlignment": 0,
+            "lineWidth": 0,
+            "pointSize": 5,
+            "stacking": { "mode": "none" }
           },
           "thresholds": {
+            "mode": "absolute",
             "steps": [
               { "color": "red", "value": null },
               { "color": "yellow", "value": 5000 },
@@ -26,329 +32,475 @@
             ]
           },
           "unit": "short"
-        }
+        },
+        "overrides": []
       },
-      "targets": [{
-        "rawSql": "SELECT date AS time, total_steps FROM daily_summary WHERE $__timeFilter(date) ORDER BY date",
-        "format": "time_series",
-        "refId": "A"
-      }]
+      "targets": [
+        {
+          "rawSql": "SELECT date AS time, total_steps FROM daily_summary WHERE $__timeFilter(date) ORDER BY date",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
     },
     {
+      "id": 2,
       "title": "Daily Calories",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "TimescaleDB" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "drawStyle": "bars", "fillOpacity": 40 },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 50,
+            "barAlignment": 0,
+            "lineWidth": 0,
+            "pointSize": 5,
+            "stacking": { "mode": "normal" }
+          },
           "unit": "short"
         },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "active_calories" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
-          { "matcher": { "id": "byName", "options": "bmr_calories" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] }
+          {
+            "matcher": { "id": "byName", "options": "active_calories" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "bmr_calories" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }
+            ]
+          }
         ]
       },
-      "targets": [{
-        "rawSql": "SELECT date AS time, active_calories, bmr_calories FROM daily_summary WHERE $__timeFilter(date) ORDER BY date",
-        "format": "time_series",
-        "refId": "A"
-      }]
+      "targets": [
+        {
+          "rawSql": "SELECT date AS time, active_calories, bmr_calories FROM daily_summary WHERE $__timeFilter(date) ORDER BY date",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
     },
     {
+      "id": 3,
       "title": "Resting Heart Rate",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "TimescaleDB" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
       "fieldConfig": {
         "defaults": {
           "color": { "fixedColor": "red", "mode": "fixed" },
-          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "spanNulls": true },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true,
+            "pointSize": 5
+          },
           "unit": "bpm"
-        }
+        },
+        "overrides": []
       },
-      "targets": [{
-        "rawSql": "SELECT date AS time, resting_heart_rate FROM daily_summary WHERE $__timeFilter(date) AND resting_heart_rate IS NOT NULL ORDER BY date",
-        "format": "time_series",
-        "refId": "A"
-      }]
+      "targets": [
+        {
+          "rawSql": "SELECT date AS time, resting_heart_rate FROM daily_summary WHERE $__timeFilter(date) AND resting_heart_rate IS NOT NULL ORDER BY date",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
     },
     {
-      "title": "Heart Rate (Intraday)",
+      "id": 4,
+      "title": "Heart Rate Intraday",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
-      "datasource": { "type": "postgres", "uid": "TimescaleDB" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
       "fieldConfig": {
         "defaults": {
           "color": { "fixedColor": "red", "mode": "fixed" },
-          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 15, "pointSize": 1 },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 15,
+            "pointSize": 1
+          },
           "unit": "bpm"
-        }
+        },
+        "overrides": []
       },
-      "targets": [{
-        "rawSql": "SELECT timestamp AS time, heart_rate FROM heart_rate WHERE $__timeFilter(timestamp) ORDER BY timestamp",
-        "format": "time_series",
-        "refId": "A"
-      }]
+      "targets": [
+        {
+          "rawSql": "SELECT timestamp AS time, heart_rate FROM heart_rate WHERE $__timeFilter(timestamp) ORDER BY timestamp",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
     },
     {
-      "title": "Stress Level (Intraday)",
+      "id": 5,
+      "title": "Stress Level Intraday",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
-      "datasource": { "type": "postgres", "uid": "TimescaleDB" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "continuous-BlYlRd" },
-          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 20 },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 20,
+            "gradientMode": "scheme"
+          },
           "min": 0,
           "max": 100,
           "unit": "short"
-        }
+        },
+        "overrides": []
       },
-      "targets": [{
-        "rawSql": "SELECT timestamp AS time, stress_level FROM stress WHERE $__timeFilter(timestamp) ORDER BY timestamp",
-        "format": "time_series",
-        "refId": "A"
-      }]
+      "targets": [
+        {
+          "rawSql": "SELECT timestamp AS time, stress_level FROM stress WHERE $__timeFilter(timestamp) ORDER BY timestamp",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
     },
     {
+      "id": 6,
       "title": "Body Battery",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
-      "datasource": { "type": "postgres", "uid": "TimescaleDB" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "continuous-GrYlRd" },
-          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 30, "gradientMode": "scheme" },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 30,
+            "gradientMode": "scheme"
+          },
           "min": 0,
           "max": 100,
           "unit": "percent"
-        }
+        },
+        "overrides": []
       },
-      "targets": [{
-        "rawSql": "SELECT timestamp AS time, level AS body_battery FROM body_battery WHERE $__timeFilter(timestamp) ORDER BY timestamp",
-        "format": "time_series",
-        "refId": "A"
-      }]
+      "targets": [
+        {
+          "rawSql": "SELECT timestamp AS time, level AS body_battery FROM body_battery WHERE $__timeFilter(timestamp) ORDER BY timestamp",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
     },
     {
+      "id": 7,
       "title": "SpO2",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
-      "datasource": { "type": "postgres", "uid": "TimescaleDB" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
       "fieldConfig": {
         "defaults": {
           "color": { "fixedColor": "purple", "mode": "fixed" },
-          "custom": { "drawStyle": "points", "pointSize": 4 },
+          "custom": {
+            "drawStyle": "points",
+            "pointSize": 5
+          },
           "min": 85,
           "max": 100,
           "unit": "percent"
-        }
+        },
+        "overrides": []
       },
-      "targets": [{
-        "rawSql": "SELECT timestamp AS time, spo2 FROM spo2 WHERE $__timeFilter(timestamp) ORDER BY timestamp",
-        "format": "time_series",
-        "refId": "A"
-      }]
+      "targets": [
+        {
+          "rawSql": "SELECT timestamp AS time, spo2_value FROM spo2 WHERE $__timeFilter(timestamp) ORDER BY timestamp",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
     },
     {
-      "title": "Sleep Duration & Score",
+      "id": 8,
+      "title": "Sleep Duration & Stages",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
-      "datasource": { "type": "postgres", "uid": "TimescaleDB" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
       "fieldConfig": {
-        "defaults": { "unit": "h" },
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 70,
+            "barAlignment": 0,
+            "lineWidth": 0,
+            "stacking": { "mode": "normal" }
+          },
+          "unit": "h"
+        },
         "overrides": [
           {
             "matcher": { "id": "byName", "options": "deep" },
             "properties": [
-              { "id": "color", "value": { "fixedColor": "dark-blue", "mode": "fixed" } },
-              { "id": "custom.drawStyle", "value": "bars" },
-              { "id": "custom.fillOpacity", "value": 70 },
-              { "id": "custom.stacking", "value": { "mode": "normal" } }
+              { "id": "color", "value": { "fixedColor": "dark-blue", "mode": "fixed" } }
             ]
           },
           {
             "matcher": { "id": "byName", "options": "light" },
             "properties": [
-              { "id": "color", "value": { "fixedColor": "light-blue", "mode": "fixed" } },
-              { "id": "custom.drawStyle", "value": "bars" },
-              { "id": "custom.fillOpacity", "value": 70 },
-              { "id": "custom.stacking", "value": { "mode": "normal" } }
+              { "id": "color", "value": { "fixedColor": "light-blue", "mode": "fixed" } }
             ]
           },
           {
             "matcher": { "id": "byName", "options": "rem" },
             "properties": [
-              { "id": "color", "value": { "fixedColor": "super-light-purple", "mode": "fixed" } },
-              { "id": "custom.drawStyle", "value": "bars" },
-              { "id": "custom.fillOpacity", "value": 70 },
-              { "id": "custom.stacking", "value": { "mode": "normal" } }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "sleep_score" },
-            "properties": [
-              { "id": "custom.drawStyle", "value": "line" },
-              { "id": "custom.lineWidth", "value": 2 },
-              { "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } },
-              { "id": "custom.axisPlacement", "value": "right" },
-              { "id": "unit", "value": "short" },
-              { "id": "min", "value": 0 },
-              { "id": "max", "value": 100 }
+              { "id": "color", "value": { "fixedColor": "purple", "mode": "fixed" } }
             ]
           }
         ]
       },
-      "targets": [{
-        "rawSql": "SELECT date AS time, deep_sleep_seconds/3600.0 AS deep, light_sleep_seconds/3600.0 AS light, rem_sleep_seconds/3600.0 AS rem, sleep_score FROM sleep_summary WHERE $__timeFilter(date) ORDER BY date",
-        "format": "time_series",
-        "refId": "A"
-      }]
+      "targets": [
+        {
+          "rawSql": "SELECT date AS time, deep_sleep_seconds/3600.0 AS deep, light_sleep_seconds/3600.0 AS light, rem_sleep_seconds/3600.0 AS rem FROM sleep_summary WHERE $__timeFilter(date) ORDER BY date",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
     },
     {
-      "title": "HRV Trend",
+      "id": 9,
+      "title": "Sleep Score & HRV",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
-      "datasource": { "type": "postgres", "uid": "TimescaleDB" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
       "fieldConfig": {
         "defaults": {
-          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "spanNulls": true },
-          "unit": "ms"
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "spanNulls": true,
+            "pointSize": 5
+          }
         },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "weekly_avg" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
-          { "matcher": { "id": "byName", "options": "last_night_avg" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] }
+          {
+            "matcher": { "id": "byName", "options": "sleep_score" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } },
+              { "id": "custom.axisPlacement", "value": "left" },
+              { "id": "min", "value": 0 },
+              { "id": "max", "value": 100 },
+              { "id": "unit", "value": "short" },
+              { "id": "custom.axisLabel", "value": "Sleep Score" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "hrv" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } },
+              { "id": "custom.axisPlacement", "value": "right" },
+              { "id": "unit", "value": "ms" },
+              { "id": "custom.axisLabel", "value": "HRV (ms)" }
+            ]
+          }
         ]
       },
-      "targets": [{
-        "rawSql": "SELECT date AS time, weekly_avg, last_night_avg FROM hrv WHERE $__timeFilter(date) ORDER BY date",
-        "format": "time_series",
-        "refId": "A"
-      }]
+      "targets": [
+        {
+          "rawSql": "SELECT date AS time, sleep_score FROM sleep_summary WHERE $__timeFilter(date) AND sleep_score IS NOT NULL ORDER BY date",
+          "format": "time_series",
+          "refId": "A"
+        },
+        {
+          "rawSql": "SELECT date AS time, last_night_avg AS hrv FROM hrv WHERE $__timeFilter(date) AND last_night_avg IS NOT NULL ORDER BY date",
+          "format": "time_series",
+          "refId": "B"
+        }
+      ]
     },
     {
+      "id": 10,
       "title": "Training Readiness",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 32 },
-      "datasource": { "type": "postgres", "uid": "TimescaleDB" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "continuous-GrYlRd" },
-          "custom": { "drawStyle": "bars", "fillOpacity": 60, "gradientMode": "scheme" },
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "gradientMode": "scheme",
+            "barAlignment": 0,
+            "lineWidth": 0
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 40 },
+              { "color": "green", "value": 60 }
+            ]
+          },
           "min": 0,
           "max": 100,
           "unit": "short"
-        }
+        },
+        "overrides": []
       },
-      "targets": [{
-        "rawSql": "SELECT date AS time, score AS readiness_score FROM training_readiness WHERE $__timeFilter(date) ORDER BY date",
-        "format": "time_series",
-        "refId": "A"
-      }]
+      "targets": [
+        {
+          "rawSql": "SELECT date AS time, score FROM training_readiness WHERE $__timeFilter(date) ORDER BY date",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
     },
     {
-      "title": "Average Stress",
+      "id": 11,
+      "title": "HRV Trend",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 32 },
-      "datasource": { "type": "postgres", "uid": "TimescaleDB" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "continuous-BlYlRd" },
-          "custom": { "drawStyle": "bars", "fillOpacity": 50, "gradientMode": "scheme" },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true,
+            "pointSize": 5
+          },
+          "unit": "ms"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "weekly_avg" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } },
+              { "id": "custom.lineStyle", "value": { "fill": "solid" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "last_night_avg" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } },
+              { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT date AS time, weekly_avg, last_night_avg FROM hrv WHERE $__timeFilter(date) ORDER BY date",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "Average Stress",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 32 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 50,
+            "gradientMode": "scheme",
+            "barAlignment": 0,
+            "lineWidth": 0
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 30 },
+              { "color": "red", "value": 50 }
+            ]
+          },
           "min": 0,
           "max": 100,
           "unit": "short"
-        }
-      },
-      "targets": [{
-        "rawSql": "SELECT date AS time, avg_stress FROM daily_summary WHERE $__timeFilter(date) AND avg_stress IS NOT NULL ORDER BY date",
-        "format": "time_series",
-        "refId": "A"
-      }]
-    },
-    {
-      "title": "Body Composition",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 32 },
-      "datasource": { "type": "postgres", "uid": "TimescaleDB" },
-      "fieldConfig": {
-        "defaults": {
-          "custom": { "drawStyle": "line", "lineWidth": 2, "spanNulls": true }
         },
-        "overrides": [
-          { "matcher": { "id": "byName", "options": "weight_kg" }, "properties": [{ "id": "unit", "value": "masskg" }, { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
-          { "matcher": { "id": "byName", "options": "body_fat_pct" }, "properties": [{ "id": "unit", "value": "percent" }, { "id": "custom.axisPlacement", "value": "right" }, { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
-        ]
+        "overrides": []
       },
-      "targets": [{
-        "rawSql": "SELECT date AS time, weight_kg, body_fat_pct FROM body_composition WHERE $__timeFilter(date) ORDER BY date",
-        "format": "time_series",
-        "refId": "A"
-      }]
+      "targets": [
+        {
+          "rawSql": "SELECT date AS time, avg_stress FROM daily_summary WHERE $__timeFilter(date) ORDER BY date",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
     },
     {
-      "title": "Recent Activities",
-      "type": "table",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 40 },
-      "datasource": { "type": "postgres", "uid": "TimescaleDB" },
-      "fieldConfig": {
-        "overrides": [
-          { "matcher": { "id": "byName", "options": "distance_km" }, "properties": [{ "id": "unit", "value": "km" }, { "id": "decimals", "value": 2 }] },
-          { "matcher": { "id": "byName", "options": "duration_min" }, "properties": [{ "id": "unit", "value": "min" }, { "id": "decimals", "value": 0 }] },
-          { "matcher": { "id": "byName", "options": "avg_heart_rate" }, "properties": [{ "id": "unit", "value": "bpm" }] }
-        ]
-      },
-      "targets": [{
-        "rawSql": "SELECT start_time, activity_type, name, distance_meters/1000.0 AS distance_km, duration_seconds/60.0 AS duration_min, avg_heart_rate, max_heart_rate, calories FROM activities WHERE $__timeFilter(start_time) ORDER BY start_time DESC LIMIT 50",
-        "format": "table",
-        "refId": "A"
-      }]
-    },
-    {
+      "id": 13,
       "title": "Respiration Rate",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 },
-      "datasource": { "type": "postgres", "uid": "TimescaleDB" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
       "fieldConfig": {
         "defaults": {
-          "color": { "fixedColor": "light-green", "mode": "fixed" },
-          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10 },
+          "color": { "fixedColor": "super-light-green", "mode": "fixed" },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10
+          },
           "unit": "breathpm"
-        }
+        },
+        "overrides": []
       },
-      "targets": [{
-        "rawSql": "SELECT timestamp AS time, respiration_rate FROM respiration WHERE $__timeFilter(timestamp) ORDER BY timestamp",
-        "format": "time_series",
-        "refId": "A"
-      }]
+      "targets": [
+        {
+          "rawSql": "SELECT timestamp AS time, respiration_rate FROM respiration WHERE $__timeFilter(timestamp) ORDER BY timestamp",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
     },
     {
+      "id": 14,
       "title": "Floors Climbed",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 },
-      "datasource": { "type": "postgres", "uid": "TimescaleDB" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
       "fieldConfig": {
         "defaults": {
-          "color": { "fixedColor": "dark-green", "mode": "fixed" },
-          "custom": { "drawStyle": "bars", "fillOpacity": 60 },
+          "color": { "fixedColor": "green", "mode": "fixed" },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "barAlignment": 0,
+            "lineWidth": 0
+          },
           "unit": "short"
-        }
+        },
+        "overrides": []
       },
-      "targets": [{
-        "rawSql": "SELECT date AS time, floors_climbed FROM daily_summary WHERE $__timeFilter(date) AND floors_climbed IS NOT NULL ORDER BY date",
-        "format": "time_series",
-        "refId": "A"
-      }]
+      "targets": [
+        {
+          "rawSql": "SELECT date AS time, floors_climbed FROM daily_summary WHERE $__timeFilter(date) ORDER BY date",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
     }
   ],
+  "refresh": "10m",
   "schemaVersion": 39,
   "tags": ["garmin", "health"],
   "templating": { "list": [] },
-  "time": { "from": "now-30d", "to": "now" },
+  "time": { "from": "now-7d", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Garmin Health Dashboard",
-  "uid": "garmin-health-main"
+  "title": "Health Overview",
+  "uid": "garmin-health"
 }

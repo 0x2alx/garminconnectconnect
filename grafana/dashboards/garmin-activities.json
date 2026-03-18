@@ -1,0 +1,336 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Total Activities",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [{
+        "rawSql": "SELECT COUNT(*) AS total FROM activities WHERE $__timeFilter(start_time)",
+        "format": "table",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 2,
+      "title": "Total Distance",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 4, "x": 4, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }] },
+          "unit": "km"
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [{
+        "rawSql": "SELECT ROUND(CAST(SUM(distance_meters)/1000.0 AS numeric), 1) AS total_km FROM activities WHERE $__timeFilter(start_time)",
+        "format": "table",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 3,
+      "title": "Total Calories",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 4, "x": 8, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }] },
+          "unit": "cal"
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [{
+        "rawSql": "SELECT SUM(calories) AS total_cal FROM activities WHERE $__timeFilter(start_time)",
+        "format": "table",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 4,
+      "title": "Total Duration",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 4, "x": 12, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }] },
+          "unit": "hours"
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [{
+        "rawSql": "SELECT ROUND(CAST(SUM(duration_seconds)/3600.0 AS numeric), 1) AS total_hours FROM activities WHERE $__timeFilter(start_time)",
+        "format": "table",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 5,
+      "title": "Avg Heart Rate",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 4, "x": 16, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }] },
+          "unit": "bpm"
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [{
+        "rawSql": "SELECT ROUND(AVG(avg_heart_rate)) AS avg_hr FROM activities WHERE $__timeFilter(start_time) AND avg_heart_rate IS NOT NULL",
+        "format": "table",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 6,
+      "title": "Avg VO2max",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 4, "x": 20, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [{
+        "rawSql": "SELECT ROUND(CAST(AVG(vo2max) AS numeric), 1) AS avg_vo2 FROM activities WHERE $__timeFilter(start_time) AND vo2max IS NOT NULL",
+        "format": "table",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 7,
+      "title": "Activities by Type",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 5 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right" },
+        "pieType": "donut"
+      },
+      "targets": [{
+        "rawSql": "SELECT activity_type, COUNT(*) AS count FROM activities WHERE $__timeFilter(start_time) GROUP BY activity_type ORDER BY count DESC",
+        "format": "table",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 8,
+      "title": "Distance by Type",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 5 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "options": { "orientation": "horizontal" },
+      "targets": [{
+        "rawSql": "SELECT activity_type, ROUND(CAST(SUM(distance_meters)/1000.0 AS numeric), 1) AS distance_km FROM activities WHERE $__timeFilter(start_time) AND distance_meters > 0 GROUP BY activity_type ORDER BY distance_km DESC",
+        "format": "table",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 9,
+      "title": "Calories by Type",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 5 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "options": { "orientation": "horizontal" },
+      "targets": [{
+        "rawSql": "SELECT activity_type, SUM(calories) AS total_calories FROM activities WHERE $__timeFilter(start_time) GROUP BY activity_type ORDER BY total_calories DESC",
+        "format": "table",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 10,
+      "title": "Activity Distance Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 13 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "green", "mode": "fixed" },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "gradientMode": "scheme"
+          },
+          "unit": "km"
+        }
+      },
+      "targets": [{
+        "rawSql": "SELECT start_time AS time, distance_meters/1000.0 AS distance_km FROM activities WHERE $__timeFilter(start_time) ORDER BY start_time",
+        "format": "time_series",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 11,
+      "title": "Activity Duration Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 13 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "blue", "mode": "fixed" },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "gradientMode": "scheme"
+          },
+          "unit": "min"
+        }
+      },
+      "targets": [{
+        "rawSql": "SELECT start_time AS time, duration_seconds/60.0 AS duration_min FROM activities WHERE $__timeFilter(start_time) ORDER BY start_time",
+        "format": "time_series",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 12,
+      "title": "Training Effect (Aerobic)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 21 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "orange", "mode": "fixed" },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true,
+            "pointSize": 5,
+            "showPoints": "auto"
+          },
+          "min": 0,
+          "max": 5
+        }
+      },
+      "targets": [{
+        "rawSql": "SELECT start_time AS time, training_effect_aerobic FROM activities WHERE $__timeFilter(start_time) AND training_effect_aerobic IS NOT NULL ORDER BY start_time",
+        "format": "time_series",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 13,
+      "title": "Training Effect (Anaerobic)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 21 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "red", "mode": "fixed" },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true,
+            "pointSize": 5,
+            "showPoints": "auto"
+          },
+          "min": 0,
+          "max": 5
+        }
+      },
+      "targets": [{
+        "rawSql": "SELECT start_time AS time, training_effect_anaerobic FROM activities WHERE $__timeFilter(start_time) AND training_effect_anaerobic IS NOT NULL ORDER BY start_time",
+        "format": "time_series",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 14,
+      "title": "VO2max Trend",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 21 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "green", "mode": "fixed" },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true,
+            "pointSize": 6,
+            "showPoints": "always"
+          }
+        }
+      },
+      "targets": [{
+        "rawSql": "SELECT start_time AS time, vo2max FROM activities WHERE $__timeFilter(start_time) AND vo2max IS NOT NULL ORDER BY start_time",
+        "format": "time_series",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 15,
+      "title": "Recent Activities",
+      "type": "table",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 29 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TimescaleDB" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "targets": [{
+        "rawSql": "SELECT \n  start_time,\n  name,\n  activity_type,\n  duration_seconds / 60 AS duration_min,\n  ROUND(CAST(distance_meters/1000.0 AS numeric), 2) AS distance_km,\n  avg_heart_rate,\n  max_heart_rate,\n  calories,\n  ROUND(CAST(training_effect_aerobic AS numeric), 1) AS te_aerobic,\n  vo2max,\n  ROUND(CAST(elevation_gain AS numeric), 0) AS elevation_m\nFROM activities \nWHERE $__timeFilter(start_time)\nORDER BY start_time DESC\nLIMIT 100",
+        "format": "table",
+        "refId": "A"
+      }]
+    }
+  ],
+  "refresh": "10m",
+  "schemaVersion": 39,
+  "tags": ["garmin", "activities"],
+  "templating": { "list": [] },
+  "time": { "from": "now-90d", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Activities",
+  "uid": "garmin-activities",
+  "version": 1
+}
