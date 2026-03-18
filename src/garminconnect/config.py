@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     backfill_days: int = 30
 
     mcp_transport: str = "stdio"
+    mcp_host: str = "0.0.0.0"
+    mcp_port: int = 8080
 
     @property
     def postgres_url(self) -> str:

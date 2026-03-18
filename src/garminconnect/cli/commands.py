@@ -94,8 +94,16 @@ def mcp() -> None:
     from garminconnect.mcp.server import create_mcp_server
 
     server = create_mcp_server(postgres_url=settings.postgres_url)
-    click.echo("Starting MCP server...")
-    server.run(transport=settings.mcp_transport)
+    transport = settings.mcp_transport
+    if transport == "sse":
+        click.echo(f"Starting MCP server (SSE) on {settings.mcp_host}:{settings.mcp_port}...")
+        server.run(transport="sse", host=settings.mcp_host, port=settings.mcp_port)
+    elif transport == "streamable-http":
+        click.echo(f"Starting MCP server (HTTP) on {settings.mcp_host}:{settings.mcp_port}...")
+        server.run(transport="streamable-http", host=settings.mcp_host, port=settings.mcp_port)
+    else:
+        click.echo("Starting MCP server (stdio)...")
+        server.run(transport="stdio")
 
 
 @cli.command()
