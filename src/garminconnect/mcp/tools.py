@@ -82,7 +82,7 @@ QUERY_TEMPLATES = {
                avg_heart_rate, max_heart_rate, calories,
                avg_speed, max_speed, avg_cadence,
                training_effect_aerobic, training_effect_anaerobic,
-               vo2max_value, elevation_gain
+               vo2max, elevation_gain
         FROM activities
         WHERE start_time BETWEEN :start AND :end
         ORDER BY start_time DESC
