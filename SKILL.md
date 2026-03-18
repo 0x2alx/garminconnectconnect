@@ -7,7 +7,7 @@ metadata: {"clawdbot":{"emoji":"⌚","requires":{"bins":["mcporter"]}}}
 
 # Garmin Health Data
 
-You have access to a Garmin Connect health database via the `garmin-health` MCP server. Data is synced from Garmin Connect every 10 minutes and stored in TimescaleDB.
+You have access to a Garmin Connect health database via the `garmin-connect` MCP server. Data is synced from Garmin Connect every 10 minutes and stored in TimescaleDB.
 
 ## Connection
 
@@ -33,10 +33,12 @@ You have access to a Garmin Connect health database via the `garmin-health` MCP 
 ## Available Tools
 
 ### get_health_summary
-Get a comprehensive health summary for the last N days. Pass `--days` (default 7). Returns daily averages (steps, calories, RHR, stress, SpO2), sleep averages, and activity totals.
+Get a comprehensive health summary for a Garmin-aligned period. Pass `--period` (default "week"). Returns daily averages (steps, calories, RHR, stress, SpO2), sleep averages, and activity totals.
+
+Period values: `week`, `4weeks`, `month`, `month-1`, `year`, or a number like `30` for arbitrary day counts. Periods use Garmin's Monday-to-Sunday week convention and exclude today (partial day).
 
 ### query_health_data
-Run pre-built health queries. Pass `--query_name`, `--start_date` (YYYY-MM-DD), `--end_date` (YYYY-MM-DD), `--limit`.
+Run pre-built health queries. Pass `--query_name` and either `--period` or explicit `--start_date`/`--end_date` (YYYY-MM-DD). Optional `--limit` (default 30).
 
 Available queries:
 - `daily_overview` — steps, calories, resting HR, stress, body battery, SpO2
@@ -63,16 +65,19 @@ Check when each metric was last synced.
 ## Usage Examples
 
 **General health check:**
-Use `get_health_summary` with `--days 7`
+Use `get_health_summary` with `--period week` or `--period 4weeks`
 
 **Sleep analysis:**
-Use `query_health_data` with `--query_name sleep_trend --start_date 2026-03-01 --end_date 2026-03-18`
+Use `query_health_data` with `--query_name sleep_trend --period month`
 
 **Last activities:**
 Use `query_health_data` with `--query_name activity_list --limit 10`
 
 **Training readiness:**
-Use `query_health_data` with `--query_name training_readiness_trend --start_date 2026-03-11 --end_date 2026-03-18`
+Use `query_health_data` with `--query_name training_readiness_trend --period week`
+
+**Explicit date range:**
+Use `query_health_data` with `--query_name hr_intraday --start_date 2026-03-15 --end_date 2026-03-18`
 
 **Custom query:**
 Use `execute_sql` with `--query "SELECT date, total_steps, resting_heart_rate FROM daily_summary WHERE date >= CURRENT_DATE - 7 ORDER BY date DESC"`
