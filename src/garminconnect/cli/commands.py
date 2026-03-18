@@ -91,7 +91,7 @@ def daemon() -> None:
 @cli.command()
 def mcp() -> None:
     """Start the MCP server."""
-    from garminconnect.mcp.server import create_mcp_server
+    from garminconnect.mcp.server import create_mcp_server, BearerAuthMiddleware
 
     server = create_mcp_server(
         postgres_url=settings.postgres_url,
@@ -104,7 +104,14 @@ def mcp() -> None:
             click.echo("Bearer token authentication enabled.")
         else:
             click.echo("WARNING: No MCP_API_KEY set — authentication disabled.")
-        server.run(transport="sse", host=settings.mcp_host, port=settings.mcp_port)
+        # Build the ASGI app with auth middleware wrapping it
+        import uvicorn
+        from starlette.middleware import Middleware
+        middleware = []
+        if settings.mcp_api_key:
+            middleware.append(Middleware(BearerAuthMiddleware, api_key=settings.mcp_api_key))
+        app = server.http_app(transport="sse", middleware=middleware)
+        uvicorn.run(app, host=settings.mcp_host, port=settings.mcp_port)
     elif transport == "streamable-http":
         click.echo(f"Starting MCP server (HTTP) on {settings.mcp_host}:{settings.mcp_port}...")
         server.run(transport="streamable-http", host=settings.mcp_host, port=settings.mcp_port)

@@ -43,8 +43,7 @@ class BearerAuthMiddleware:
 
 def create_mcp_server(postgres_url: str, api_key: str = "") -> FastMCP:
     mcp = FastMCP("Garmin Health Data")
-    if api_key:
-        mcp.add_middleware(Middleware(BearerAuthMiddleware, api_key=api_key))
+    mcp._auth_api_key = api_key
     engine = create_engine(postgres_url, pool_pre_ping=True)
 
     @mcp.tool()

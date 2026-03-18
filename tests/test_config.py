@@ -33,8 +33,13 @@ def test_postgres_url_plain_credentials():
 
 
 def test_mongo_url():
-    s = Settings(mongo_host="mongo", mongo_port=27017)
+    s = Settings(mongo_host="mongo", mongo_port=27017, mongo_root_user="", mongo_root_password="")
     assert s.mongo_url == "mongodb://mongo:27017"
+
+
+def test_mongo_url_with_auth():
+    s = Settings(mongo_host="mongo", mongo_port=27017, mongo_root_user="admin", mongo_root_password="s3cret")
+    assert s.mongo_url == "mongodb://admin:s3cret@mongo:27017"
 
 
 def test_poll_interval_must_be_positive():
