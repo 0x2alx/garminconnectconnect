@@ -46,7 +46,7 @@ def extract_daily_summary(target_date: date, data: dict[str, Any]) -> DailySumma
 
 def extract_heart_rate_readings(data: dict[str, Any]) -> list[HeartRateReading]:
     readings = []
-    for entry in data.get("heartRateValues", []):
+    for entry in data.get("heartRateValues") or []:
         if not isinstance(entry, (list, tuple)) or len(entry) < 2:
             continue
         ts_ms, hr = entry[0], entry[1]
@@ -61,7 +61,7 @@ def extract_heart_rate_readings(data: dict[str, Any]) -> list[HeartRateReading]:
 
 def extract_stress_readings(data: dict[str, Any]) -> list[StressReading]:
     readings = []
-    for entry in data.get("stressValuesArray", []):
+    for entry in data.get("stressValuesArray") or []:
         if not isinstance(entry, (list, tuple)) or len(entry) < 2:
             continue
         ts_ms, level = entry[0], entry[1]
@@ -82,7 +82,7 @@ def extract_body_battery_readings(data: dict[str, Any]) -> list[BodyBatteryReadi
     bodyBatteryValuesArray entries are [epoch_ms, "MEASURED", battery_level, delta].
     """
     readings = []
-    for item in data.get("bodyBatteryValuesArray", []):
+    for item in data.get("bodyBatteryValuesArray") or []:
         if isinstance(item, (list, tuple)):
             # Format: [epoch_ms, status_str, battery_level, delta]
             # or possibly [epoch_ms, battery_level]
@@ -112,7 +112,7 @@ def extract_body_battery_readings(data: dict[str, Any]) -> list[BodyBatteryReadi
 def extract_respiration_readings(data: dict[str, Any]) -> list[RespirationReading]:
     """Extract from respirationValuesArray: [epoch_ms, breaths_per_min]."""
     readings = []
-    for entry in data.get("respirationValuesArray", []):
+    for entry in data.get("respirationValuesArray") or []:
         if not isinstance(entry, (list, tuple)) or len(entry) < 2:
             continue
         ts_ms, rate = entry[0], entry[1]
@@ -129,7 +129,7 @@ def extract_spo2_readings(data: dict[str, Any]) -> list[SpO2Reading]:
     """Extract SpO2 from spO2HourlyAverages or continuousReadingDTOList."""
     readings = []
     # Try hourly averages first: [[epoch_ms, value], ...]
-    for entry in data.get("spO2HourlyAverages", []):
+    for entry in data.get("spO2HourlyAverages") or []:
         if not isinstance(entry, (list, tuple)) or len(entry) < 2:
             continue
         ts_ms, value = entry[0], entry[1]
@@ -141,7 +141,7 @@ def extract_spo2_readings(data: dict[str, Any]) -> list[SpO2Reading]:
         except (ValueError, TypeError, OSError):
             continue
     # Also try continuous readings
-    for entry in data.get("continuousReadingDTOList", []):
+    for entry in data.get("continuousReadingDTOList") or []:
         if not isinstance(entry, dict):
             continue
         ts_ms = entry.get("epochTimestamp") or entry.get("startTimestampGMT")
