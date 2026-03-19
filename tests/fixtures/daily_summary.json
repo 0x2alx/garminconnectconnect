@@ -1,12 +1,12 @@
 {
   "totalSteps": 8432,
-  "totalStepGoal": 10000,
+  "dailyStepGoal": 10000,
   "totalKilocalories": 2156,
   "activeKilocalories": 876,
   "bmrKilocalories": 1280,
   "totalDistanceMeters": 6543.2,
   "floorsAscended": 8,
-  "floorsAscendedGoal": 10,
+  "userFloorsAscendedGoal": 10,
   "intensityMinutesGoal": 150,
   "moderateIntensityMinutes": 45,
   "vigorousIntensityMinutes": 20,
@@ -19,6 +19,6 @@
   "bodyBatteryLowestValue": 22,
   "averageSpo2": 96.5,
   "lowestSpo2": 92.0,
-  "averageRespirationValue": 16.2,
+  "avgWakingRespirationValue": 16.2,
   "lastSevenDaysAvgRestingHeartRate": 57
 }

@@ -9,8 +9,11 @@
     "sleepEndTimestampGMT": 1710655200000,
     "averageSpO2Value": 95.5,
     "averageRespirationValue": 15.8,
-    "averageStress": 18.0,
-    "bodyBatteryChange": 65,
-    "overallSleepScore": { "value": 82 }
-  }
+    "avgSleepStress": 18.0,
+    "sleepScores": {
+      "overall": { "value": 82 }
+    }
+  },
+  "avgOvernightHrv": 45,
+  "bodyBatteryChange": 65
 }

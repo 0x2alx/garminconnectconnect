@@ -32,13 +32,13 @@ def extract_daily_summary(target_date: date, data: dict[str, Any]) -> DailySumma
     return DailySummary(
         date=target_date,
         total_steps=data.get("totalSteps"),
-        step_goal=data.get("totalStepGoal"),
+        step_goal=data.get("dailyStepGoal"),
         total_calories=data.get("totalKilocalories"),
         active_calories=data.get("activeKilocalories"),
         bmr_calories=data.get("bmrKilocalories"),
         total_distance_meters=data.get("totalDistanceMeters"),
         floors_climbed=data.get("floorsAscended"),
-        floors_goal=data.get("floorsAscendedGoal"),
+        floors_goal=data.get("userFloorsAscendedGoal"),
         moderate_intensity_minutes=data.get("moderateIntensityMinutes"),
         vigorous_intensity_minutes=data.get("vigorousIntensityMinutes"),
         intensity_minutes=(data.get("moderateIntensityMinutes") or 0) + (data.get("vigorousIntensityMinutes") or 0) if data.get("moderateIntensityMinutes") is not None or data.get("vigorousIntensityMinutes") is not None else None,
@@ -51,7 +51,7 @@ def extract_daily_summary(target_date: date, data: dict[str, Any]) -> DailySumma
         body_battery_low=data.get("bodyBatteryLowestValue"),
         avg_spo2=data.get("averageSpo2"),
         lowest_spo2=data.get("lowestSpo2"),
-        avg_respiration=data.get("averageRespirationValue"),
+        avg_respiration=data.get("avgWakingRespirationValue"),
         hydration_ml=data.get("hydrationIntakeMl"),
         sweat_loss_ml=data.get("sweatLossMl"),
     )
@@ -207,7 +207,10 @@ def extract_body_composition(target_date: date, data: Any) -> list[BodyCompositi
 
 def extract_sleep_summary(target_date: date, data: dict[str, Any]) -> SleepSummary:
     dto = data.get("dailySleepDTO", data)
-    score_obj = dto.get("overallSleepScore", {})
+    # Sleep score is nested: sleepScores.overall.value
+    sleep_scores = dto.get("sleepScores", {})
+    overall = sleep_scores.get("overall", {}) if isinstance(sleep_scores, dict) else {}
+    sleep_score = overall.get("value") if isinstance(overall, dict) else None
     return SleepSummary(
         date=target_date,
         total_sleep_seconds=dto.get("sleepTimeSeconds"),
@@ -215,14 +218,14 @@ def extract_sleep_summary(target_date: date, data: dict[str, Any]) -> SleepSumma
         light_sleep_seconds=dto.get("lightSleepSeconds"),
         rem_sleep_seconds=dto.get("remSleepSeconds"),
         awake_seconds=dto.get("awakeSleepSeconds"),
-        sleep_score=score_obj.get("value") if isinstance(score_obj, dict) else score_obj,
+        sleep_score=sleep_score,
         sleep_start=_ts_to_dt(dto["sleepStartTimestampGMT"]) if dto.get("sleepStartTimestampGMT") else None,
         sleep_end=_ts_to_dt(dto["sleepEndTimestampGMT"]) if dto.get("sleepEndTimestampGMT") else None,
         avg_spo2=dto.get("averageSpO2Value"),
         avg_respiration=dto.get("averageRespirationValue"),
-        avg_stress=dto.get("averageStress"),
-        avg_hrv=dto.get("averageHRV"),
-        body_battery_change=dto.get("bodyBatteryChange"),
+        avg_stress=dto.get("avgSleepStress"),
+        avg_hrv=data.get("avgOvernightHrv"),
+        body_battery_change=data.get("bodyBatteryChange"),
     )
 
 
@@ -319,8 +322,8 @@ def extract_training_readiness(target_date: date, data: Any) -> TrainingReadines
         score=entry.get("score"),
         level=entry.get("level"),
         sleep_score=entry.get("sleepScore"),
-        recovery_score=entry.get("recoveryScore"),
-        hrv_score=entry.get("hrvScore"),
+        recovery_score=entry.get("recoveryTimeFactorPercent"),
+        hrv_score=entry.get("hrvFactorPercent"),
     )
 
 
