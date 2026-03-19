@@ -27,11 +27,19 @@ class GarminScheduler:
         self.pipeline.sync_training_plan()
         logger.info("sync_cycle_complete")
 
+    def sync_calendar(self) -> None:
+        """Sync scheduled workouts from Garmin calendar (±3 months)."""
+        logger.info("calendar_sync_start")
+        count = self.pipeline.sync_calendar()
+        logger.info("calendar_sync_complete", count=count)
+
     def start(self) -> None:
         logger.info("scheduler_starting", interval_minutes=self.interval_minutes)
         self.run_once()
+        self.sync_calendar()
         scheduler = BlockingScheduler()
         scheduler.add_job(self.run_once, "interval", minutes=self.interval_minutes, id="garmin_sync")
+        scheduler.add_job(self.sync_calendar, "interval", hours=6, id="garmin_calendar_sync")
         try:
             scheduler.start()
         except (KeyboardInterrupt, SystemExit):
