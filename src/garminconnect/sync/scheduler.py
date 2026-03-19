@@ -20,6 +20,11 @@ class GarminScheduler:
         self.pipeline.sync_date(today, force=True)
         self.pipeline.sync_activities(limit=10)
         self.pipeline.sync_body_composition(yesterday, today)
+        self.pipeline.sync_running_tolerance()
+        self.pipeline.sync_workouts()
+        self.pipeline.sync_personal_records()
+        self.pipeline.sync_badges()
+        self.pipeline.sync_training_plan()
         logger.info("sync_cycle_complete")
 
     def start(self) -> None:

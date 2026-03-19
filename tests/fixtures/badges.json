@@ -1,0 +1,16 @@
+[
+  {
+    "badgeId": "STEPS_10000",
+    "badgeName": "10,000 Steps",
+    "badgeCategoryName": "Daily Steps",
+    "earnedDate": "2026-03-18T23:59:59.0",
+    "earnedNumber": 42
+  },
+  {
+    "badgeId": "MARATHON_FINISHER",
+    "badgeName": "Marathon Finisher",
+    "badgeCategoryName": "Distance",
+    "earnedDate": "2026-01-15T12:30:00.0",
+    "earnedNumber": 1
+  }
+]

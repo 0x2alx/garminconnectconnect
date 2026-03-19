@@ -8,10 +8,13 @@ from garminconnect.api.client import GarminAPIClient
 from garminconnect.db.repository import HealthRepository
 from garminconnect.sync.extractors import (
     _parse_garmin_timestamp,
-    extract_activity, extract_body_battery_readings, extract_body_composition,
-    extract_daily_summary, extract_heart_rate_readings, extract_hrv_summary,
-    extract_respiration_readings, extract_sleep_summary, extract_spo2_readings,
-    extract_stress_readings, extract_training_readiness,
+    extract_activity, extract_badges, extract_blood_pressure_readings,
+    extract_body_battery_events, extract_body_battery_readings, extract_body_composition,
+    extract_daily_summary, extract_floors_readings, extract_heart_rate_readings,
+    extract_hrv_summary, extract_intensity_minutes_readings, extract_personal_records,
+    extract_respiration_readings, extract_running_tolerance, extract_sleep_summary,
+    extract_spo2_readings, extract_stress_readings, extract_training_plan,
+    extract_training_readiness, extract_workouts,
 )
 
 logger = structlog.get_logger()
@@ -25,12 +28,18 @@ EXTRACTORS: dict[str, Any] = {
     "training_readiness": lambda d, data: [extract_training_readiness(d, data)],
     "respiration": lambda d, data: extract_respiration_readings(data),
     "spo2": lambda d, data: extract_spo2_readings(data),
+    "body_battery_events": lambda d, data: extract_body_battery_events(data),
+    "intensity_minutes": lambda d, data: extract_intensity_minutes_readings(data),
+    "floors": lambda d, data: extract_floors_readings(data),
+    "blood_pressure": lambda d, data: extract_blood_pressure_readings(data),
 }
 
 # Endpoints to sync daily. body_battery is extracted from the stress response.
 DAILY_SYNC_ENDPOINTS = [
     "daily_summary", "heart_rate", "stress",
     "sleep", "hrv", "training_readiness", "respiration", "spo2",
+    "body_battery_events", "intensity_minutes", "floors",
+    "blood_pressure",
 ]
 
 
@@ -134,3 +143,79 @@ class SyncPipeline:
         except Exception as e:
             logger.error("activity_sync_failed", error=str(e))
         return synced_ids
+
+    def sync_running_tolerance(self) -> bool:
+        """Sync running tolerance stats (dateless endpoint)."""
+        try:
+            raw_data = self._fetch_with_retry("running_tolerance")
+            if raw_data:
+                self.repo.store_raw("running_tolerance", date.today(), raw_data)
+                rt = extract_running_tolerance(date.today(), raw_data)
+                self.repo.upsert(rt)
+                logger.info("synced_running_tolerance")
+                return True
+        except Exception as e:
+            logger.error("running_tolerance_sync_failed", error=str(e))
+        return False
+
+    def sync_workouts(self) -> list[str]:
+        """Sync all workouts from Garmin Connect."""
+        synced_ids: list[str] = []
+        try:
+            raw_data = self._fetch_with_retry("workout_list")
+            if raw_data:
+                self.repo.store_raw("workouts", date.today(), raw_data)
+                workouts = extract_workouts(raw_data)
+                if workouts:
+                    self.repo.upsert_many(workouts)
+                    synced_ids = [w.workout_id for w in workouts]
+                    logger.info("synced_workouts", count=len(synced_ids))
+        except Exception as e:
+            logger.error("workout_sync_failed", error=str(e))
+        return synced_ids
+
+    def sync_personal_records(self) -> int:
+        """Sync personal records from Garmin Connect."""
+        count = 0
+        try:
+            raw_data = self._fetch_with_retry("personal_records")
+            if raw_data:
+                self.repo.store_raw("personal_records", date.today(), raw_data)
+                records = extract_personal_records(raw_data)
+                if records:
+                    self.repo.upsert_many(records)
+                    count = len(records)
+                    logger.info("synced_personal_records", count=count)
+        except Exception as e:
+            logger.error("personal_records_sync_failed", error=str(e))
+        return count
+
+    def sync_badges(self) -> int:
+        """Sync earned badges from Garmin Connect."""
+        count = 0
+        try:
+            raw_data = self._fetch_with_retry("badges")
+            if raw_data:
+                self.repo.store_raw("badges", date.today(), raw_data)
+                badges = extract_badges(raw_data)
+                if badges:
+                    self.repo.upsert_many(badges)
+                    count = len(badges)
+                    logger.info("synced_badges", count=count)
+        except Exception as e:
+            logger.error("badge_sync_failed", error=str(e))
+        return count
+
+    def sync_training_plan(self) -> str | None:
+        """Sync active training plan from Garmin Connect."""
+        try:
+            raw_data = self._fetch_with_retry("training_plan")
+            if raw_data:
+                self.repo.store_raw("training_plan", date.today(), raw_data)
+                plan = extract_training_plan(raw_data)
+                self.repo.upsert(plan)
+                logger.info("synced_training_plan", plan_id=plan.plan_id)
+                return plan.plan_id
+        except Exception as e:
+            logger.error("training_plan_sync_failed", error=str(e))
+        return None

@@ -5,10 +5,12 @@ from typing import Any
 from garminconnect.models.daily import DailySummary, BodyComposition
 from garminconnect.models.monitoring import (
     BodyBatteryReading, HeartRateReading, RespirationReading, SpO2Reading, StressReading,
+    BodyBatteryEvent, IntensityMinutesReading, FloorsReading, BloodPressureReading,
 )
 from garminconnect.models.sleep import SleepSummary
 from garminconnect.models.activities import Activity
-from garminconnect.models.training import HRVSummary, TrainingReadiness
+from garminconnect.models.training import HRVSummary, TrainingReadiness, RunningTolerance, PersonalRecord
+from garminconnect.models.workouts import Workout, Badge, TrainingPlan
 
 
 def _ts_to_dt(epoch_ms: int) -> datetime:
@@ -308,4 +310,180 @@ def extract_training_readiness(target_date: date, data: Any) -> TrainingReadines
         sleep_score=entry.get("sleepScore"),
         recovery_score=entry.get("recoveryScore"),
         hrv_score=entry.get("hrvScore"),
+    )
+
+
+def extract_body_battery_events(data: dict[str, Any]) -> list[BodyBatteryEvent]:
+    events = []
+    for item in data.get("bodyBatteryEvents") or []:
+        if not isinstance(item, dict):
+            continue
+        ts_ms = item.get("startTimestampGMT")
+        if ts_ms is None:
+            continue
+        duration_ms = item.get("durationInMilliseconds")
+        events.append(BodyBatteryEvent(
+            timestamp=_ts_to_dt(int(ts_ms)),
+            event_type=item.get("eventType"),
+            body_battery_impact=item.get("bodyBatteryImpact"),
+            duration_minutes=int(duration_ms / 60000) if duration_ms else None,
+            feedback_type=item.get("feedbackType"),
+        ))
+    return events
+
+
+def extract_intensity_minutes_readings(data: dict[str, Any]) -> list[IntensityMinutesReading]:
+    """Extract from intensityMinutesEntries: [epoch_ms, moderate, vigorous]."""
+    readings = []
+    for entry in data.get("intensityMinutesEntries") or []:
+        if not isinstance(entry, (list, tuple)) or len(entry) < 3:
+            continue
+        ts_ms, moderate, vigorous = entry[0], entry[1], entry[2]
+        if ts_ms is None:
+            continue
+        try:
+            readings.append(IntensityMinutesReading(
+                timestamp=_ts_to_dt(int(ts_ms)),
+                moderate_minutes=int(moderate) if moderate is not None else None,
+                vigorous_minutes=int(vigorous) if vigorous is not None else None,
+            ))
+        except (ValueError, TypeError):
+            continue
+    return readings
+
+
+def extract_floors_readings(data: dict[str, Any]) -> list[FloorsReading]:
+    """Extract from floorsChartEntries: [epoch_ms, ascended, descended]."""
+    readings = []
+    for entry in data.get("floorsChartEntries") or []:
+        if not isinstance(entry, (list, tuple)) or len(entry) < 3:
+            continue
+        ts_ms, ascended, descended = entry[0], entry[1], entry[2]
+        if ts_ms is None:
+            continue
+        try:
+            readings.append(FloorsReading(
+                timestamp=_ts_to_dt(int(ts_ms)),
+                floors_ascended=int(ascended) if ascended is not None else None,
+                floors_descended=int(descended) if descended is not None else None,
+            ))
+        except (ValueError, TypeError):
+            continue
+    return readings
+
+
+def extract_blood_pressure_readings(data: dict[str, Any]) -> list[BloodPressureReading]:
+    """Extract all blood pressure measurements from a daily response."""
+    readings = []
+    for m in data.get("bloodPressureMeasurements") or []:
+        if not isinstance(m, dict):
+            continue
+        ts = _parse_garmin_timestamp(m.get("measurementTimestampGMT"))
+        if ts is None:
+            continue
+        readings.append(BloodPressureReading(
+            timestamp=ts,
+            systolic=m.get("systolic"),
+            diastolic=m.get("diastolic"),
+            pulse=m.get("pulse"),
+            notes=m.get("notes"),
+        ))
+    return readings
+
+
+def extract_running_tolerance(target_date: date, data: dict[str, Any]) -> RunningTolerance:
+    return RunningTolerance(
+        date=target_date,
+        heat_acclimation=data.get("heatAcclimation"),
+        altitude_acclimation=data.get("altitudeAcclimation"),
+        heat_acclimation_status=data.get("heatAcclimationStatus"),
+        altitude_acclimation_status=data.get("altitudeAcclimationStatus"),
+    )
+
+
+def extract_personal_records(data: Any) -> list[PersonalRecord]:
+    records = []
+    items = data if isinstance(data, list) else data.get("personalRecords", []) if isinstance(data, dict) else []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        record_type = item.get("personalRecordType")
+        if not record_type:
+            continue
+        pr_date = None
+        pr_time_str = item.get("prStartTimeGMT")
+        if pr_time_str:
+            dt = _parse_garmin_timestamp(pr_time_str)
+            pr_date = dt.date() if dt else None
+        records.append(PersonalRecord(
+            record_type=record_type,
+            activity_type=item.get("activityType"),
+            value=item.get("value"),
+            activity_id=str(item["activityId"]) if item.get("activityId") else None,
+            pr_date=pr_date,
+        ))
+    return records
+
+
+def extract_workouts(data: Any) -> list[Workout]:
+    items = data if isinstance(data, list) else data.get("workouts", []) if isinstance(data, dict) else []
+    workouts = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        workout_id = item.get("workoutId")
+        if not workout_id:
+            continue
+        sport_type = item.get("sportType")
+        if isinstance(sport_type, dict):
+            sport_type = sport_type.get("sportTypeKey")
+        workouts.append(Workout(
+            workout_id=str(workout_id),
+            name=item.get("workoutName"),
+            description=item.get("description"),
+            sport_type=sport_type,
+            created_date=_ts_to_dt(int(item["createdDate"])) if item.get("createdDate") else None,
+            updated_date=_ts_to_dt(int(item["updatedDate"])) if item.get("updatedDate") else None,
+            estimated_duration_seconds=item.get("estimatedDurationInSecs"),
+            estimated_distance_meters=item.get("estimatedDistanceInMeters"),
+            num_steps=item.get("numberOfSteps"),
+            scheduled_date=None,
+        ))
+    return workouts
+
+
+def extract_badges(data: Any) -> list[Badge]:
+    items = data if isinstance(data, list) else data.get("badges", []) if isinstance(data, dict) else []
+    badges = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        badge_id = item.get("badgeId")
+        if not badge_id:
+            continue
+        earned_dt = _parse_garmin_timestamp(item.get("earnedDate"))
+        badges.append(Badge(
+            badge_id=str(badge_id),
+            name=item.get("badgeName"),
+            category=item.get("badgeCategoryName"),
+            earned_date=earned_dt,
+            earned_number=item.get("earnedNumber"),
+        ))
+    return badges
+
+
+def extract_training_plan(data: dict[str, Any]) -> TrainingPlan:
+    sport_type = data.get("sportType")
+    if isinstance(sport_type, dict):
+        sport_type = sport_type.get("sportTypeKey")
+    start_str = data.get("startDate")
+    end_str = data.get("endDate")
+    return TrainingPlan(
+        plan_id=str(data.get("trainingPlanId", "")),
+        name=data.get("name"),
+        sport_type=sport_type,
+        start_date=date.fromisoformat(start_str) if start_str else None,
+        end_date=date.fromisoformat(end_str) if end_str else None,
+        goal=data.get("goal"),
+        status=data.get("status"),
     )

@@ -51,3 +51,23 @@ class RacePrediction(Base):
     time_10k_seconds: Mapped[int | None] = mapped_column(Integer, default=None)
     time_half_marathon_seconds: Mapped[int | None] = mapped_column(Integer, default=None)
     time_marathon_seconds: Mapped[int | None] = mapped_column(Integer, default=None)
+
+
+class RunningTolerance(Base):
+    __tablename__ = "running_tolerance"
+
+    date: Mapped[date] = mapped_column(Date, primary_key=True)
+    heat_acclimation: Mapped[float | None] = mapped_column(Float, default=None)
+    altitude_acclimation: Mapped[float | None] = mapped_column(Float, default=None)
+    heat_acclimation_status: Mapped[str | None] = mapped_column(String(30), default=None)
+    altitude_acclimation_status: Mapped[str | None] = mapped_column(String(30), default=None)
+
+
+class PersonalRecord(Base):
+    __tablename__ = "personal_records"
+
+    record_type: Mapped[str] = mapped_column(String(100), primary_key=True)
+    activity_type: Mapped[str | None] = mapped_column(String(50), default=None)
+    value: Mapped[float | None] = mapped_column(Float, default=None)
+    activity_id: Mapped[str | None] = mapped_column(String(30), default=None)
+    pr_date: Mapped[date | None] = mapped_column(Date, default=None)

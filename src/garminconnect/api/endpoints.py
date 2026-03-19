@@ -11,6 +11,9 @@ class EndpointCategory(Enum):
     TRAINING = "training"
     BODY = "body"
     DEVICE = "device"
+    WELLNESS = "wellness"
+    GAMIFICATION = "gamification"
+    WORKOUT = "workout"
 
 
 @dataclass(frozen=True)
@@ -53,6 +56,17 @@ ENDPOINTS: list[Endpoint] = [
     Endpoint("body_composition", "/weight-service/weight/daterangesnapshot?startDate={start}&endDate={end}", EndpointCategory.BODY),
     Endpoint("devices", "/device-service/deviceregistration/devices", EndpointCategory.DEVICE),
     Endpoint("device_solar", "/web-gateway/solar/{date}/{device_id}", EndpointCategory.DEVICE),
+    # Wellness (daily, date-based)
+    Endpoint("body_battery_events", "/wellness-service/wellness/bodyBattery/events/{date}", EndpointCategory.WELLNESS),
+    Endpoint("intensity_minutes", "/wellness-service/wellness/daily/im/{date}", EndpointCategory.WELLNESS),
+    Endpoint("floors", "/wellness-service/wellness/floorsChartData/daily/{date}", EndpointCategory.WELLNESS),
+    Endpoint("blood_pressure", "/bloodpressure-service/bloodpressure/range/{date}", EndpointCategory.WELLNESS),
+    # Standalone (no {date} — use sync_* methods, NOT DAILY_SYNC_ENDPOINTS)
+    Endpoint("running_tolerance", "/metrics-service/metrics/runningtolerance/stats", EndpointCategory.WELLNESS),
+    Endpoint("personal_records", "/personalrecord-service/personalrecord/prs/{user_id}", EndpointCategory.WELLNESS, requires_user_id=True),
+    Endpoint("workout_list", "/workout-service/workouts", EndpointCategory.WORKOUT),
+    Endpoint("badges", "/badge-service/badge/earned", EndpointCategory.GAMIFICATION),
+    Endpoint("training_plan", "/trainingplan-service/trainingplan", EndpointCategory.WORKOUT),
 ]
 
 ENDPOINTS_BY_NAME: dict[str, Endpoint] = {ep.name: ep for ep in ENDPOINTS}

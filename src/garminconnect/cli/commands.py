@@ -54,6 +54,16 @@ def backfill(days: int, force: bool) -> None:
     pipeline.sync_body_composition(start, end)
     click.echo("Syncing activities...")
     pipeline.sync_activities(limit=100)
+    click.echo("Syncing running tolerance...")
+    pipeline.sync_running_tolerance()
+    click.echo("Syncing workouts...")
+    pipeline.sync_workouts()
+    click.echo("Syncing personal records...")
+    pipeline.sync_personal_records()
+    click.echo("Syncing badges...")
+    pipeline.sync_badges()
+    click.echo("Syncing training plan...")
+    pipeline.sync_training_plan()
     click.echo("Backfill complete.")
 
 
@@ -158,7 +168,10 @@ def sync_one(endpoint: str, target_date: str, force: bool) -> None:
     from garminconnect.sync.pipeline import SyncPipeline, DAILY_SYNC_ENDPOINTS
 
     # Validate endpoint name
-    valid_endpoints = list(DAILY_SYNC_ENDPOINTS) + ["body_composition", "weight", "activities"]
+    valid_endpoints = list(DAILY_SYNC_ENDPOINTS) + [
+        "body_composition", "weight", "activities",
+        "running_tolerance", "workouts", "personal_records", "badges", "training_plan",
+    ]
     if endpoint not in valid_endpoints:
         click.echo(f"Unknown endpoint: {endpoint}", err=True)
         click.echo(f"Valid endpoints: {', '.join(valid_endpoints)}", err=True)
@@ -198,6 +211,21 @@ def sync_one(endpoint: str, target_date: str, force: bool) -> None:
     elif endpoint in ("body_composition", "weight"):
         count = pipeline.sync_body_composition(parsed_date, parsed_date)
         click.echo(f"Synced {count} body composition entries.")
+    elif endpoint == "running_tolerance":
+        pipeline.sync_running_tolerance()
+        click.echo("Synced running tolerance.")
+    elif endpoint == "workouts":
+        synced = pipeline.sync_workouts()
+        click.echo(f"Synced {len(synced)} workouts.")
+    elif endpoint == "personal_records":
+        count = pipeline.sync_personal_records()
+        click.echo(f"Synced {count} personal records.")
+    elif endpoint == "badges":
+        count = pipeline.sync_badges()
+        click.echo(f"Synced {count} badges.")
+    elif endpoint == "training_plan":
+        plan_id = pipeline.sync_training_plan()
+        click.echo(f"Synced training plan: {plan_id}" if plan_id else "No active training plan.")
     else:
         results = pipeline.sync_date(parsed_date, endpoints=[endpoint], force=force)
         status = results.get(endpoint, "unknown")

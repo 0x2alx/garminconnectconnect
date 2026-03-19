@@ -1,0 +1,9 @@
+{
+  "trainingPlanId": "TP_001",
+  "name": "Half Marathon Training",
+  "sportType": {"sportTypeKey": "running"},
+  "startDate": "2026-02-01",
+  "endDate": "2026-05-01",
+  "goal": "Sub 1:45 Half Marathon",
+  "status": "IN_PROGRESS"
+}

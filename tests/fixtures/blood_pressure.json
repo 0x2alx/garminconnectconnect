@@ -1,0 +1,12 @@
+{
+  "startTimestampGMT": "2026-03-19T00:00:00.0",
+  "bloodPressureMeasurements": [
+    {
+      "measurementTimestampGMT": "2026-03-19T08:30:00.0",
+      "systolic": 120,
+      "diastolic": 80,
+      "pulse": 65,
+      "notes": "Morning reading"
+    }
+  ]
+}

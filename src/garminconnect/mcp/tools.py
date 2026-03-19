@@ -117,14 +117,74 @@ QUERY_TEMPLATES = {
         ORDER BY ds.date DESC
         LIMIT :limit
     """,
+    "body_battery_event_timeline": """
+        SELECT timestamp, event_type, body_battery_impact,
+               duration_minutes, feedback_type
+        FROM body_battery_events
+        WHERE timestamp >= :start AND timestamp < :end
+        ORDER BY timestamp
+    """,
+    "intensity_minutes_intraday": """
+        SELECT timestamp, moderate_minutes, vigorous_minutes
+        FROM intensity_minutes
+        WHERE timestamp >= :start AND timestamp < :end
+        ORDER BY timestamp
+    """,
+    "floors_intraday": """
+        SELECT timestamp, floors_ascended, floors_descended
+        FROM floors
+        WHERE timestamp >= :start AND timestamp < :end
+        ORDER BY timestamp
+    """,
+    "blood_pressure_trend": """
+        SELECT timestamp, systolic, diastolic, pulse, notes
+        FROM blood_pressure
+        WHERE timestamp >= :start AND timestamp < :end
+        ORDER BY timestamp DESC
+    """,
+    "running_tolerance_trend": """
+        SELECT date, heat_acclimation, altitude_acclimation,
+               heat_acclimation_status, altitude_acclimation_status
+        FROM running_tolerance
+        WHERE date BETWEEN :start AND :end
+        ORDER BY date DESC
+    """,
+    "personal_records_list": """
+        SELECT record_type, activity_type, value, activity_id, pr_date
+        FROM personal_records
+        ORDER BY pr_date DESC
+        LIMIT :limit
+    """,
+    "workout_list": """
+        SELECT workout_id, name, sport_type, estimated_duration_seconds,
+               estimated_distance_meters, num_steps, scheduled_date
+        FROM workouts
+        ORDER BY updated_date DESC
+        LIMIT :limit
+    """,
+    "badges_earned": """
+        SELECT badge_id, name, category, earned_date, earned_number
+        FROM badges
+        ORDER BY earned_date DESC
+        LIMIT :limit
+    """,
+    "training_plan_status": """
+        SELECT plan_id, name, sport_type, start_date, end_date,
+               goal, status
+        FROM training_plans
+        ORDER BY start_date DESC
+        LIMIT :limit
+    """,
 }
 
 
 def get_table_list() -> list[str]:
     return [
         "daily_summary", "body_composition", "heart_rate", "stress",
-        "body_battery", "spo2", "respiration", "sleep_summary",
-        "sleep_stages", "activities", "activity_trackpoints",
+        "body_battery", "body_battery_events", "spo2", "respiration",
+        "intensity_minutes", "floors", "blood_pressure",
+        "sleep_summary", "sleep_stages", "activities", "activity_trackpoints",
         "hrv", "training_readiness", "training_status",
-        "race_predictions", "sync_status",
+        "race_predictions", "running_tolerance", "personal_records",
+        "workouts", "badges", "training_plans", "sync_status",
     ]
