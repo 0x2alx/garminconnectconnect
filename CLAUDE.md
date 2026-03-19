@@ -20,16 +20,26 @@ garminconnectconnect — a self-hosted Garmin Connect data server that polls Gar
 # Run unit tests
 pytest tests/ --ignore=tests/test_integration.py -v
 
-# Run integration tests (needs Docker)
+# Run a single test file
+pytest tests/test_extractors.py -v
+
+# Run a single test by name
+pytest tests/test_extractors.py -k "test_extract_heart_rate" -v
+
+# Run integration tests (needs Docker — uses testcontainers for real DB instances)
 pytest tests/test_integration.py -v
 
-# Build Docker image
-docker compose build
+# Lint
+ruff check src/ tests/
 
-# Start everything
+# Type check
+mypy src/
+
+# Build and run
+docker compose build
 docker compose up -d
 
-# CLI commands
+# CLI commands (garmin-cli profile runs interactively, not as a daemon)
 docker compose run --rm garmin-cli login
 docker compose run --rm garmin-cli backfill --days 30
 docker compose run --rm garmin-cli sync-one --endpoint heart_rate --date 2025-01-15
@@ -38,14 +48,17 @@ docker compose run --rm garmin-cli status
 
 ## Architecture
 
-- `src/garminconnect/auth/` — garth-based Garmin Connect authentication
-- `src/garminconnect/api/` — API client with 30 endpoint definitions, rate limiting
+- `src/garminconnect/config.py` — Pydantic Settings class, all config via env vars (30+), see `.env.example`
+- `src/garminconnect/auth/` — garth-based Garmin Connect authentication, token auto-refresh
+- `src/garminconnect/api/` — API client with 30 endpoint definitions, rate limiting (1 req/sec), URL templating with `{date}`, `{user_id}`, `{activity_id}` placeholders
 - `src/garminconnect/models/` — SQLAlchemy models for 16 tables (daily, monitoring, sleep, activities, training)
-- `src/garminconnect/db/` — TimescaleDB + MongoDB connection and repository pattern
-- `src/garminconnect/sync/` — extractors (JSON->models), sync pipeline, APScheduler daemon
-- `src/garminconnect/mcp/` — FastMCP server with 6 tools for AI querying
-- `src/garminconnect/cli/` — Click CLI (login, backfill, sync-one, daemon, mcp, status)
-- `grafana/` — Auto-provisioned datasource and 15-panel health dashboard
+- `src/garminconnect/db/` — TimescaleDB + MongoDB connection and HealthRepository pattern (unified interface for both DBs)
+- `src/garminconnect/sync/` — extractors (JSON→models), sync pipeline (fetch→store raw→extract→upsert), APScheduler daemon
+- `src/garminconnect/mcp/` — FastMCP server with 6 tools, BearerAuthMiddleware, read-only SQL enforcement via regex
+- `src/garminconnect/cli/` — Click CLI (login, backfill, sync-one, daemon, mcp, status). Uses lazy imports per command.
+- `src/garminconnect/utils/` — Garmin-aligned date range calculations (Monday–Sunday weeks, "today" excluded)
+- `grafana/` — Auto-provisioned datasource and dashboards (3 JSON files in `grafana/dashboards/`)
+- `alembic/` — Database migrations; env.py handles TimescaleDB hypertable creation
 
 ## Key Design Decisions
 
@@ -54,3 +67,14 @@ docker compose run --rm garmin-cli status
 - **Hypertables**: HR, stress, body battery, SpO2, respiration, sleep stages use TimescaleDB hypertables for time-series performance
 - **Idempotent sync**: sync_status table tracks what's been synced per metric per date, prevents re-fetching
 - **Rate limiting**: 1 second minimum between API calls, 10-minute polling interval (safe for Garmin's undocumented limits)
+- **Docker profiles**: `garmin-cli` uses `profiles: ["cli"]` so it doesn't auto-start with `docker compose up`
+- **Retries**: Tenacity with exponential backoff (5s initial, 120s max, 3 attempts) on API calls
+- **MCP read-only**: `execute_sql` tool blocks INSERT/UPDATE/DELETE/DROP/ALTER/CREATE/TRUNCATE via regex; connections use `BEGIN READ ONLY`
+- **Garmin date alignment**: Weeks are Monday–Sunday, periods exclude the current day. See `utils/date_ranges.py`.
+
+## Testing
+
+- **Async mode**: pytest-asyncio with `asyncio_mode = "auto"` (pyproject.toml)
+- **Fixtures**: Sample Garmin JSON responses in `tests/fixtures/` (daily_summary.json, heart_rate.json, stress.json, sleep.json)
+- **Integration tests**: Use testcontainers to spin up real PostgreSQL + MongoDB — require Docker running
+- **Code style**: ruff (line-length=100, target py312)
