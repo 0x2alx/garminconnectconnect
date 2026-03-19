@@ -4,14 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-garminconnectconnect — a self-hosted Garmin Connect data server that polls Garmin Connect, stores data in TimescaleDB (processed) and MongoDB (raw), exposes it via MCP server for AI querying, and visualizes with Grafana. Everything runs in Docker.
+garminconnectconnect — a self-hosted Garmin Connect data server that polls Garmin Connect, stores data in TimescaleDB (processed) and MongoDB (raw), and exposes it via MCP server for AI querying. Everything runs in Docker.
 
 ## Tech Stack
 
 - Python 3.12+, SQLAlchemy 2.0, garth (Garmin auth), PyMongo, FastMCP, Click, APScheduler
 - PostgreSQL 16 + TimescaleDB (time-series data)
 - MongoDB 7 (raw JSON archival)
-- Grafana (dashboards)
 - Docker Compose (all services)
 
 ## Commands
@@ -57,7 +56,6 @@ docker compose run --rm garmin-cli status
 - `src/garminconnect/mcp/` — FastMCP server with 6 tools, BearerAuthMiddleware, read-only SQL enforcement via regex
 - `src/garminconnect/cli/` — Click CLI (login, backfill, sync-one, daemon, mcp, status). Uses lazy imports per command.
 - `src/garminconnect/utils/` — Garmin-aligned date range calculations (Monday–Sunday weeks, "today" excluded)
-- `grafana/` — Auto-provisioned datasource and dashboards (3 JSON files in `grafana/dashboards/`)
 - `alembic/` — Database migrations; env.py handles TimescaleDB hypertable creation
 
 ## Key Design Decisions
