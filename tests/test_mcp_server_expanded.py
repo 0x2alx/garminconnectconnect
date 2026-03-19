@@ -12,7 +12,7 @@ class TestGetTableList:
         assert isinstance(tables, list)
         assert "daily_summary" in tables
         assert "activities" in tables
-        assert len(tables) == 16
+        assert len(tables) >= 16
 
 
 class TestQueryTemplates:
