@@ -76,3 +76,14 @@ docker compose run --rm garmin-cli status
 - **Fixtures**: Sample Garmin JSON responses in `tests/fixtures/` (daily_summary.json, heart_rate.json, stress.json, sleep.json)
 - **Integration tests**: Use testcontainers to spin up real PostgreSQL + MongoDB — require Docker running
 - **Code style**: ruff (line-length=100, target py312)
+
+## Public Repository — Security
+
+This repository is **public**. Always verify before committing or pushing:
+
+- **No secrets**: Never commit `.env`, tokens, passwords, API keys, or credentials (real or generated). Use `.env.example` with placeholder values only.
+- **No personal data**: No real email addresses, Garmin usernames, personal health data, IP addresses, or hostnames in code, comments, commit messages, or docs.
+- **No sensitive paths**: Avoid hardcoding user home directories or local filesystem paths.
+- **Commit messages**: Keep them descriptive but free of personal details.
+- **Plan/spec files**: If they contain real credentials or personal info, add them to `.gitignore` — never commit them.
+- **Review diffs**: Before every commit, review `git diff --staged` for accidental secret or PII exposure.

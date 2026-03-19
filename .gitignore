@@ -39,6 +39,9 @@ docker-compose.override.yml
 # Claude Code
 .claude/
 
+# Superpowers plans/specs (may contain secrets or personal info)
+docs/superpowers/
+
 # OS
 .DS_Store
 Thumbs.db
