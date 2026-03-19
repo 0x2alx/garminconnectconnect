@@ -22,7 +22,7 @@ class GarminAPIClient:
             time.sleep(MIN_REQUEST_INTERVAL - elapsed)
         self._last_request_time = time.monotonic()
 
-    def _build_url(self, endpoint: Endpoint, date: date | None = None, start: date | None = None, end: date | None = None, activity_id: str | None = None, device_id: str | None = None) -> str:
+    def _build_url(self, endpoint: Endpoint, date: date | None = None, start: date | None = None, end: date | None = None, activity_id: str | None = None, device_id: str | None = None, year: int | None = None, month: int | None = None) -> str:
         url = endpoint.url_template
         replacements: dict[str, str] = {}
         if date:
@@ -39,6 +39,10 @@ class GarminAPIClient:
             replacements["{activity_id}"] = activity_id
         if device_id:
             replacements["{device_id}"] = device_id
+        if year:
+            replacements["{year}"] = str(year)
+        if month:
+            replacements["{month}"] = str(month)
         for placeholder, value in replacements.items():
             url = url.replace(placeholder, value)
         return url

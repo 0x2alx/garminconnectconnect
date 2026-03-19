@@ -14,7 +14,7 @@ from garminconnect.sync.extractors import (
     extract_hrv_summary, extract_intensity_minutes_readings, extract_personal_records,
     extract_respiration_readings, extract_running_tolerance, extract_sleep_summary,
     extract_spo2_readings, extract_stress_readings, extract_training_plan,
-    extract_training_readiness, extract_workouts,
+    extract_training_readiness, extract_workouts, extract_scheduled_workouts,
 )
 
 logger = structlog.get_logger()
@@ -219,3 +219,22 @@ class SyncPipeline:
         except Exception as e:
             logger.error("training_plan_sync_failed", error=str(e))
         return None
+
+    def sync_calendar(self, year: int | None = None, month: int | None = None) -> int:
+        """Sync scheduled workouts from the Garmin calendar for a given month."""
+        today = date.today()
+        year = year or today.year
+        month = month or today.month
+        count = 0
+        try:
+            raw_data = self._fetch_with_retry("calendar", year=year, month=month)
+            if raw_data:
+                self.repo.store_raw("calendar", today, raw_data)
+                items = extract_scheduled_workouts(raw_data)
+                if items:
+                    self.repo.upsert_many(items)
+                    count = len(items)
+                    logger.info("synced_calendar", year=year, month=month, count=count)
+        except Exception as e:
+            logger.error("calendar_sync_failed", error=str(e))
+        return count

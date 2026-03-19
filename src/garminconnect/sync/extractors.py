@@ -10,7 +10,7 @@ from garminconnect.models.monitoring import (
 from garminconnect.models.sleep import SleepSummary
 from garminconnect.models.activities import Activity
 from garminconnect.models.training import HRVSummary, TrainingReadiness, RunningTolerance, PersonalRecord
-from garminconnect.models.workouts import Workout, Badge, TrainingPlan
+from garminconnect.models.workouts import Workout, Badge, TrainingPlan, ScheduledWorkout
 
 
 def _ts_to_dt(epoch_ms: int) -> datetime:
@@ -503,3 +503,25 @@ def extract_training_plan(data: dict[str, Any]) -> TrainingPlan:
         goal=data.get("goal"),
         status=data.get("status"),
     )
+
+
+def extract_scheduled_workouts(data: dict[str, Any]) -> list[ScheduledWorkout]:
+    """Extract scheduled workouts from calendar API response."""
+    items = data.get("calendarItems") or []
+    results = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        item_id = item.get("id")
+        if item_id is None:
+            continue
+        date_str = item.get("date")
+        results.append(ScheduledWorkout(
+            id=str(item_id),
+            workout_id=str(item["workoutId"]) if item.get("workoutId") else None,
+            title=item.get("title"),
+            date=date.fromisoformat(date_str) if date_str else None,
+            sport_type=item.get("sportTypeKey"),
+            item_type=item.get("itemType"),
+        ))
+    return results

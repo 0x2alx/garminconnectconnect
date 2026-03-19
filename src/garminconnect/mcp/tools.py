@@ -175,6 +175,19 @@ QUERY_TEMPLATES = {
         ORDER BY start_date DESC
         LIMIT :limit
     """,
+    "scheduled_workouts": """
+        SELECT id, workout_id, title, date, sport_type, item_type
+        FROM scheduled_workouts
+        WHERE date >= :start AND date <= :end
+        ORDER BY date
+    """,
+    "upcoming_workouts": """
+        SELECT id, workout_id, title, date, sport_type, item_type
+        FROM scheduled_workouts
+        WHERE date >= CURRENT_DATE
+        ORDER BY date
+        LIMIT :limit
+    """,
 }
 
 
@@ -186,5 +199,5 @@ def get_table_list() -> list[str]:
         "sleep_summary", "sleep_stages", "activities", "activity_trackpoints",
         "hrv", "training_readiness", "training_status",
         "race_predictions", "running_tolerance", "personal_records",
-        "workouts", "badges", "training_plans", "sync_status",
+        "workouts", "badges", "training_plans", "scheduled_workouts", "sync_status",
     ]

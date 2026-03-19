@@ -64,6 +64,8 @@ def backfill(days: int, force: bool) -> None:
     pipeline.sync_badges()
     click.echo("Syncing training plan...")
     pipeline.sync_training_plan()
+    click.echo("Syncing calendar...")
+    pipeline.sync_calendar()
     click.echo("Backfill complete.")
 
 
@@ -170,7 +172,7 @@ def sync_one(endpoint: str, target_date: str, force: bool) -> None:
     # Validate endpoint name
     valid_endpoints = list(DAILY_SYNC_ENDPOINTS) + [
         "body_composition", "weight", "activities",
-        "running_tolerance", "workouts", "personal_records", "badges", "training_plan",
+        "running_tolerance", "workouts", "personal_records", "badges", "training_plan", "calendar",
     ]
     if endpoint not in valid_endpoints:
         click.echo(f"Unknown endpoint: {endpoint}", err=True)
@@ -226,6 +228,9 @@ def sync_one(endpoint: str, target_date: str, force: bool) -> None:
     elif endpoint == "training_plan":
         plan_id = pipeline.sync_training_plan()
         click.echo(f"Synced training plan: {plan_id}" if plan_id else "No active training plan.")
+    elif endpoint == "calendar":
+        count = pipeline.sync_calendar(year=parsed_date.year, month=parsed_date.month)
+        click.echo(f"Synced {count} calendar items for {parsed_date.year}-{parsed_date.month:02d}.")
     else:
         results = pipeline.sync_date(parsed_date, endpoints=[endpoint], force=force)
         status = results.get(endpoint, "unknown")

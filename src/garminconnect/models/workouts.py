@@ -33,6 +33,17 @@ class Badge(Base):
     earned_number: Mapped[int | None] = mapped_column(SmallInteger, default=None)
 
 
+class ScheduledWorkout(Base):
+    __tablename__ = "scheduled_workouts"
+
+    id: Mapped[str] = mapped_column(String(30), primary_key=True)
+    workout_id: Mapped[str | None] = mapped_column(String(30), default=None)
+    title: Mapped[str | None] = mapped_column(String(200), default=None)
+    date: Mapped[date | None] = mapped_column(Date, default=None)
+    sport_type: Mapped[str | None] = mapped_column(String(50), default=None)
+    item_type: Mapped[str | None] = mapped_column(String(30), default=None)
+
+
 class TrainingPlan(Base):
     __tablename__ = "training_plans"
 

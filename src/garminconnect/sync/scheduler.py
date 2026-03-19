@@ -25,6 +25,7 @@ class GarminScheduler:
         self.pipeline.sync_personal_records()
         self.pipeline.sync_badges()
         self.pipeline.sync_training_plan()
+        self.pipeline.sync_calendar()
         logger.info("sync_cycle_complete")
 
     def start(self) -> None:
