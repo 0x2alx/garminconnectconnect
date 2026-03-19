@@ -221,20 +221,42 @@ class SyncPipeline:
         return None
 
     def sync_calendar(self, year: int | None = None, month: int | None = None) -> int:
-        """Sync scheduled workouts from the Garmin calendar for a given month."""
+        """Sync scheduled workouts from the Garmin calendar.
+
+        When called without arguments, syncs a 7-month window: 3 months back,
+        current month, and 3 months forward. This captures past scheduled
+        workouts and future training plan changes.
+
+        When called with explicit year/month, syncs just that month.
+        """
         today = date.today()
-        year = year or today.year
-        month = month or today.month
+        if year is not None and month is not None:
+            months_to_sync = [(year, month)]
+        else:
+            months_to_sync = []
+            for offset in range(-3, 4):
+                d = today.replace(day=1)
+                # Shift by offset months
+                m = d.month + offset
+                y = d.year
+                while m < 1:
+                    m += 12
+                    y -= 1
+                while m > 12:
+                    m -= 12
+                    y += 1
+                months_to_sync.append((y, m))
         count = 0
-        try:
-            raw_data = self._fetch_with_retry("calendar", year=year, month=month)
-            if raw_data:
-                self.repo.store_raw("calendar", today, raw_data)
-                items = extract_scheduled_workouts(raw_data)
-                if items:
-                    self.repo.upsert_many(items)
-                    count = len(items)
-                    logger.info("synced_calendar", year=year, month=month, count=count)
-        except Exception as e:
-            logger.error("calendar_sync_failed", error=str(e))
+        for y, m in months_to_sync:
+            try:
+                raw_data = self._fetch_with_retry("calendar", year=y, month=m)
+                if raw_data:
+                    self.repo.store_raw("calendar", today, raw_data)
+                    items = extract_scheduled_workouts(raw_data)
+                    if items:
+                        self.repo.upsert_many(items)
+                        count += len(items)
+                        logger.info("synced_calendar", year=y, month=m, count=len(items))
+            except Exception as e:
+                logger.error("calendar_sync_failed", year=y, month=m, error=str(e))
         return count
