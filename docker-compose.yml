@@ -1,6 +1,8 @@
 services:
   timescaledb:
     image: timescale/timescaledb:latest-pg16
+    ports:
+      - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-garmin}
       POSTGRES_USER: ${POSTGRES_USER:-garmin}
@@ -26,32 +28,16 @@ services:
       timeout: 5s
       retries: 5
 
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "127.0.0.1:${GRAFANA_PORT:-3001}:3000"
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
-      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-garmin_secret}
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
-      - ./grafana/dashboards:/var/lib/grafana/dashboards
-    depends_on:
-      timescaledb:
-        condition: service_healthy
-
   # ── Garmin Server (daemon mode) ──────────────────────────────────
   garmin-server:
     build: .
     env_file: .env
     environment:
-      POSTGRES_HOST: timescaledb
+      POSTGRES_HOST: host.docker.internal
       MONGO_HOST: mongodb
       GARMIN_TOKEN_DIR: /home/appuser/.garminconnect
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       timescaledb:
         condition: service_healthy
@@ -66,9 +52,11 @@ services:
     build: .
     env_file: .env
     environment:
-      POSTGRES_HOST: timescaledb
+      POSTGRES_HOST: host.docker.internal
       MONGO_HOST: mongodb
       GARMIN_TOKEN_DIR: /home/appuser/.garminconnect
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       timescaledb:
         condition: service_healthy
@@ -88,11 +76,13 @@ services:
     build: .
     env_file: .env
     environment:
-      POSTGRES_HOST: timescaledb
+      POSTGRES_HOST: host.docker.internal
       MONGO_HOST: mongodb
       MCP_TRANSPORT: sse
       MCP_HOST: "0.0.0.0"
       MCP_PORT: "8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "127.0.0.1:${MCP_PORT:-8080}:8080"
     depends_on:
@@ -105,5 +95,4 @@ services:
 volumes:
   timescaledb_data:
   mongodb_data:
-  grafana_data:
   garmin_tokens:
