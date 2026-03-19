@@ -60,9 +60,9 @@ ENDPOINTS: list[Endpoint] = [
     Endpoint("body_battery_events", "/wellness-service/wellness/bodyBattery/events/{date}", EndpointCategory.WELLNESS),
     Endpoint("intensity_minutes", "/wellness-service/wellness/daily/im/{date}", EndpointCategory.WELLNESS),
     Endpoint("floors", "/wellness-service/wellness/floorsChartData/daily/{date}", EndpointCategory.WELLNESS),
-    Endpoint("blood_pressure", "/bloodpressure-service/bloodpressure/range/{date}", EndpointCategory.WELLNESS),
+    Endpoint("blood_pressure", "/bloodpressure-service/bloodpressure/range/{date}/{date}", EndpointCategory.WELLNESS),
     # Standalone (no {date} — use sync_* methods, NOT DAILY_SYNC_ENDPOINTS)
-    Endpoint("running_tolerance", "/metrics-service/metrics/runningtolerance/stats", EndpointCategory.WELLNESS),
+    Endpoint("running_tolerance", "/metrics-service/metrics/runningtolerance", EndpointCategory.WELLNESS),
     Endpoint("personal_records", "/personalrecord-service/personalrecord/prs/{user_id}", EndpointCategory.WELLNESS, requires_user_id=True),
     Endpoint("workout_list", "/workout-service/workouts", EndpointCategory.WORKOUT),
     Endpoint("badges", "/badge-service/badge/earned", EndpointCategory.GAMIFICATION),

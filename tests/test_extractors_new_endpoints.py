@@ -108,9 +108,21 @@ def test_extract_training_plan():
 
 # --- Edge case tests ---
 
+def test_extract_body_battery_events_list_format():
+    """API may return events as a raw list instead of dict wrapper."""
+    data = [
+        {"startTimestampGMT": 1742342400000, "eventType": "CHARGED", "bodyBatteryImpact": 45,
+         "durationInMilliseconds": 28800000, "feedbackType": "SLEEP"},
+    ]
+    events = extract_body_battery_events(data)
+    assert len(events) == 1
+    assert events[0].event_type == "CHARGED"
+
+
 def test_extract_body_battery_events_empty():
     assert extract_body_battery_events({}) == []
     assert extract_body_battery_events({"bodyBatteryEvents": []}) == []
+    assert extract_body_battery_events([]) == []
 
 
 def test_extract_intensity_minutes_short_entries():

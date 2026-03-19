@@ -17,6 +17,17 @@ def _ts_to_dt(epoch_ms: int) -> datetime:
     return datetime.fromtimestamp(epoch_ms / 1000, tz=timezone.utc)
 
 
+def _parse_date_field(value: Any) -> datetime | None:
+    """Parse a date field that may be epoch_ms (int) or ISO string."""
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return _ts_to_dt(int(value))
+    if isinstance(value, str):
+        return _parse_garmin_timestamp(value)
+    return None
+
+
 def extract_daily_summary(target_date: date, data: dict[str, Any]) -> DailySummary:
     return DailySummary(
         date=target_date,
@@ -313,9 +324,11 @@ def extract_training_readiness(target_date: date, data: Any) -> TrainingReadines
     )
 
 
-def extract_body_battery_events(data: dict[str, Any]) -> list[BodyBatteryEvent]:
+def extract_body_battery_events(data: Any) -> list[BodyBatteryEvent]:
     events = []
-    for item in data.get("bodyBatteryEvents") or []:
+    # API may return a list directly or a dict with "bodyBatteryEvents" key
+    items = data if isinstance(data, list) else data.get("bodyBatteryEvents") or [] if isinstance(data, dict) else []
+    for item in items:
         if not isinstance(item, dict):
             continue
         ts_ms = item.get("startTimestampGMT")
@@ -442,8 +455,8 @@ def extract_workouts(data: Any) -> list[Workout]:
             name=item.get("workoutName"),
             description=item.get("description"),
             sport_type=sport_type,
-            created_date=_ts_to_dt(int(item["createdDate"])) if item.get("createdDate") else None,
-            updated_date=_ts_to_dt(int(item["updatedDate"])) if item.get("updatedDate") else None,
+            created_date=_parse_date_field(item.get("createdDate")),
+            updated_date=_parse_date_field(item.get("updatedDate")),
             estimated_duration_seconds=item.get("estimatedDurationInSecs"),
             estimated_distance_meters=item.get("estimatedDistanceInMeters"),
             num_steps=item.get("numberOfSteps"),
