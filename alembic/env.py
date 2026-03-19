@@ -18,6 +18,7 @@ import garminconnect.models.monitoring
 import garminconnect.models.sleep
 import garminconnect.models.activities
 import garminconnect.models.training
+import garminconnect.models.workouts
 import garminconnect.models.sync_status
 
 # this is the Alembic Config object, which provides
