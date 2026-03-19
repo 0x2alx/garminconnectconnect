@@ -1,0 +1,26 @@
+{
+  "date": "2026-03-19",
+  "bodyBatteryEvents": [
+    {
+      "startTimestampGMT": 1742342400000,
+      "eventType": "CHARGED",
+      "bodyBatteryImpact": 45,
+      "durationInMilliseconds": 28800000,
+      "feedbackType": "SLEEP"
+    },
+    {
+      "startTimestampGMT": 1742371200000,
+      "eventType": "DRAINED",
+      "bodyBatteryImpact": -20,
+      "durationInMilliseconds": 3600000,
+      "feedbackType": "ACTIVITY"
+    },
+    {
+      "startTimestampGMT": 1742374800000,
+      "eventType": "CHARGED",
+      "bodyBatteryImpact": 10,
+      "durationInMilliseconds": 1800000,
+      "feedbackType": "REST"
+    }
+  ]
+}
