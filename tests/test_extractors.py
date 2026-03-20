@@ -5,6 +5,7 @@ from pathlib import Path
 from garminconnect.sync.extractors import (
     extract_daily_summary, extract_heart_rate_readings,
     extract_stress_readings, extract_sleep_summary, extract_activity,
+    extract_trackpoints,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -75,3 +76,19 @@ def test_extract_activity_running_dynamics():
     assert activity.start_latitude == pytest.approx(26.1237, abs=0.001)
     assert activity.start_longitude == pytest.approx(-80.281, abs=0.001)
     assert activity.end_latitude == pytest.approx(26.1243, abs=0.001)
+
+
+def test_extract_trackpoints():
+    with open("tests/fixtures/activity_gps.json") as f:
+        data = json.load(f)
+    trackpoints = extract_trackpoints("12345", data)
+    assert len(trackpoints) == 3
+    tp = trackpoints[0]
+    assert tp.activity_id == "12345"
+    assert tp.latitude == pytest.approx(26.123, abs=0.001)
+    assert tp.longitude == pytest.approx(-80.281, abs=0.001)
+    assert tp.heart_rate == 155
+    assert tp.altitude == pytest.approx(4.2, abs=0.1)
+    assert tp.cadence == 81  # doubleCadence / 2
+    assert tp.speed == pytest.approx(2.41, abs=0.01)
+    assert tp.power == pytest.approx(348.0, abs=0.1)

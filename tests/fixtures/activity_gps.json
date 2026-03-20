@@ -1,0 +1,20 @@
+{
+  "activityId": 12345,
+  "metricsCount": 8,
+  "totalMetricsCount": 8,
+  "metricDescriptors": [
+    {"metricsIndex": 0, "key": "directLatitude", "unit": {"key": "dd"}},
+    {"metricsIndex": 1, "key": "directLongitude", "unit": {"key": "dd"}},
+    {"metricsIndex": 2, "key": "directHeartRate", "unit": {"key": "bpm"}},
+    {"metricsIndex": 3, "key": "directTimestamp", "unit": {"key": "gmt"}},
+    {"metricsIndex": 4, "key": "directElevation", "unit": {"key": "meter"}},
+    {"metricsIndex": 5, "key": "directDoubleCadence", "unit": {"key": "stepsPerMinute"}},
+    {"metricsIndex": 6, "key": "directSpeed", "unit": {"key": "mps"}},
+    {"metricsIndex": 7, "key": "directPower", "unit": {"key": "watt"}}
+  ],
+  "activityDetailMetrics": [
+    {"metrics": [26.123, -80.281, 155.0, 1773869095000.0, 4.2, 162.0, 2.41, 348.0]},
+    {"metrics": [26.124, -80.280, 157.0, 1773869096000.0, 4.5, 164.0, 2.50, 350.0]},
+    {"metrics": [26.125, -80.279, 160.0, 1773869097000.0, 4.8, 166.0, 2.55, 355.0]}
+  ]
+}

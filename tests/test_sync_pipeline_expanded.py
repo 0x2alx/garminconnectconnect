@@ -98,13 +98,15 @@ class TestActivityDateFix:
     def test_uses_activity_start_time(self):
         mock_api = MagicMock()
         mock_repo = MagicMock()
-        mock_api.fetch.return_value = [
-            {"activityId": 1, "startTimeGMT": "2026-03-15 07:00:00"},
+        mock_api.fetch.side_effect = [
+            [{"activityId": 1, "startTimeGMT": "2026-03-15 07:00:00"}],
+            None,  # activity_gps fetch returns nothing
         ]
         pipeline = SyncPipeline(api_client=mock_api, repository=mock_repo)
         pipeline.sync_activities()
-        store_raw_call = mock_repo.store_raw.call_args
-        assert store_raw_call[0][1] == date(2026, 3, 15)
+        # First store_raw call should use the activity's actual date
+        first_store_raw_call = mock_repo.store_raw.call_args_list[0]
+        assert first_store_raw_call[0][1] == date(2026, 3, 15)
 
 
 class TestActivityPagination:
@@ -114,14 +116,19 @@ class TestActivityPagination:
         mock_api = MagicMock()
         mock_repo = MagicMock()
         # Page 1: full page (2 items with limit=2), page 2: partial page (1 item)
+        # Then None for each activity_gps fetch (3 activities)
         mock_api.fetch.side_effect = [
             [{"activityId": 1}, {"activityId": 2}],
             [{"activityId": 3}],
+            None,  # activity_gps for id=1
+            None,  # activity_gps for id=2
+            None,  # activity_gps for id=3
         ]
         pipeline = SyncPipeline(api_client=mock_api, repository=mock_repo)
         ids = pipeline.sync_activities(limit=2)
         assert ids == ["1", "2", "3"]
-        assert mock_api.fetch.call_count == 2
+        # 2 activity list pages + 3 GPS fetches
+        assert mock_api.fetch.call_count == 5
 
     def test_stops_at_max_activities(self):
         mock_api = MagicMock()

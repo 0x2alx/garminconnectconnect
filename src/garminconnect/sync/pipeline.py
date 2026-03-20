@@ -15,7 +15,7 @@ from garminconnect.sync.extractors import (
     extract_respiration_readings, extract_running_tolerance, extract_sleep_summary,
     extract_sleep_stages, extract_spo2_readings, extract_stress_readings,
     extract_training_plan, extract_training_readiness, extract_workouts,
-    extract_scheduled_workouts,
+    extract_scheduled_workouts, extract_trackpoints,
 )
 
 logger = structlog.get_logger()
@@ -141,9 +141,31 @@ class SyncPipeline:
                 if len(activities) < limit:
                     break  # Last page
                 offset += limit
+            if synced_ids:
+                self.sync_activity_details(synced_ids)
         except Exception as e:
             logger.error("activity_sync_failed", error=str(e))
         return synced_ids
+
+    def sync_activity_details(self, activity_ids: list[str]) -> int:
+        """Fetch GPS/detail data for activities and extract trackpoints."""
+        count = 0
+        for activity_id in activity_ids:
+            try:
+                raw_data = self._fetch_with_retry(
+                    "activity_gps", activity_id=activity_id,
+                    params={"maxChartSize": 10000, "maxPolylineSize": 10000},
+                )
+                if raw_data:
+                    self.repo.store_raw("activity_gps", date.today(), raw_data)
+                    trackpoints = extract_trackpoints(activity_id, raw_data)
+                    if trackpoints:
+                        self.repo.upsert_many(trackpoints)
+                        count += len(trackpoints)
+                        logger.info("synced_trackpoints", activity_id=activity_id, count=len(trackpoints))
+            except Exception as e:
+                logger.error("trackpoint_sync_failed", activity_id=activity_id, error=str(e))
+        return count
 
     def sync_running_tolerance(self) -> bool:
         """Sync running tolerance stats (dateless endpoint)."""

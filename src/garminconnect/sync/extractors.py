@@ -595,6 +595,53 @@ def extract_training_plan(data: dict[str, Any]) -> TrainingPlan:
     )
 
 
+# Metric key -> (model_field, transform_fn)
+_TRACKPOINT_METRIC_MAP = {
+    "directLatitude": ("latitude", None),
+    "directLongitude": ("longitude", None),
+    "directHeartRate": ("heart_rate", lambda v: int(v) if v else None),
+    "directElevation": ("altitude", None),
+    "directDoubleCadence": ("cadence", lambda v: int(v / 2) if v else None),
+    "directRunCadence": ("cadence", lambda v: int(v) if v else None),
+    "directSpeed": ("speed", None),
+    "directPower": ("power", None),
+    "directTimestamp": ("_timestamp", lambda v: _ts_to_dt(int(v)) if v else None),
+}
+
+
+def extract_trackpoints(activity_id: str, data: dict[str, Any]) -> list[ActivityTrackpoint]:
+    """Extract trackpoints from activity_gps response with dynamic metric descriptors."""
+    descriptors = data.get("metricDescriptors") or []
+    metrics_data = data.get("activityDetailMetrics") or []
+    if not descriptors or not metrics_data:
+        return []
+
+    # Build index: position -> (field_name, transform)
+    field_map: dict[int, tuple[str, Any]] = {}
+    for desc in descriptors:
+        key = desc.get("key", "")
+        idx = desc.get("metricsIndex")
+        if idx is not None and key in _TRACKPOINT_METRIC_MAP:
+            field_map[idx] = _TRACKPOINT_METRIC_MAP[key]
+
+    trackpoints = []
+    for item in metrics_data:
+        values = item.get("metrics", [])
+        if not values:
+            continue
+        fields: dict[str, Any] = {"activity_id": activity_id}
+        for idx, (field_name, transform) in field_map.items():
+            if idx < len(values):
+                raw = values[idx]
+                fields[field_name] = transform(raw) if transform and raw is not None else raw
+        ts = fields.pop("_timestamp", None)
+        if ts is None:
+            continue
+        fields["timestamp"] = ts
+        trackpoints.append(ActivityTrackpoint(**fields))
+    return trackpoints
+
+
 def extract_scheduled_workouts(data: dict[str, Any]) -> list[ScheduledWorkout]:
     """Extract scheduled workouts from calendar API response."""
     items = data.get("calendarItems") or []
