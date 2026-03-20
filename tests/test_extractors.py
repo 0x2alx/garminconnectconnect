@@ -5,7 +5,8 @@ from pathlib import Path
 from garminconnect.sync.extractors import (
     extract_daily_summary, extract_heart_rate_readings,
     extract_stress_readings, extract_sleep_summary, extract_activity,
-    extract_trackpoints,
+    extract_trackpoints, extract_endurance_score, extract_hill_score,
+    extract_race_predictions,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -92,3 +93,28 @@ def test_extract_trackpoints():
     assert tp.cadence == 81  # doubleCadence / 2
     assert tp.speed == pytest.approx(2.41, abs=0.01)
     assert tp.power == pytest.approx(348.0, abs=0.1)
+
+
+def test_extract_endurance_score():
+    with open("tests/fixtures/endurance_score.json") as f:
+        data = json.load(f)
+    score = extract_endurance_score(date(2026, 3, 20), data)
+    assert score.overall_score == 5508
+    assert score.classification == 2
+
+
+def test_extract_hill_score():
+    with open("tests/fixtures/hill_score.json") as f:
+        data = json.load(f)
+    score = extract_hill_score(date(2026, 3, 20), data)
+    assert score.overall_score == 27
+    assert score.strength_score == 25
+    assert score.endurance_score == 13
+
+
+def test_extract_race_predictions():
+    with open("tests/fixtures/race_predictions.json") as f:
+        data = json.load(f)
+    pred = extract_race_predictions(date(2026, 3, 20), data)
+    assert pred.time_5k_seconds == 1500
+    assert pred.time_marathon_seconds == 14400

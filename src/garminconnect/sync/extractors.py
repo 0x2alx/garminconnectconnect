@@ -9,7 +9,7 @@ from garminconnect.models.monitoring import (
 )
 from garminconnect.models.sleep import SleepSummary, SleepStage
 from garminconnect.models.activities import Activity, ActivityTrackpoint
-from garminconnect.models.training import HRVSummary, TrainingReadiness, RunningTolerance, PersonalRecord
+from garminconnect.models.training import HRVSummary, TrainingReadiness, RunningTolerance, PersonalRecord, EnduranceScore, HillScore, RacePrediction
 from garminconnect.models.workouts import Workout, Badge, TrainingPlan, ScheduledWorkout
 
 
@@ -640,6 +640,37 @@ def extract_trackpoints(activity_id: str, data: dict[str, Any]) -> list[Activity
         fields["timestamp"] = ts
         trackpoints.append(ActivityTrackpoint(**fields))
     return trackpoints
+
+
+def extract_endurance_score(target_date: date, data: dict[str, Any]) -> EnduranceScore:
+    return EnduranceScore(
+        date=target_date,
+        overall_score=data.get("overallScore"),
+        classification=data.get("classification"),
+    )
+
+
+def extract_hill_score(target_date: date, data: dict[str, Any]) -> HillScore:
+    return HillScore(
+        date=target_date,
+        overall_score=data.get("overallScore"),
+        strength_score=data.get("strengthScore"),
+        endurance_score=data.get("enduranceScore"),
+        vo2max=data.get("vo2Max"),
+    )
+
+
+def extract_race_predictions(target_date: date, data: Any) -> RacePrediction:
+    # May be a list; take first entry
+    if isinstance(data, list) and data:
+        data = data[0]
+    return RacePrediction(
+        date=target_date,
+        time_5k_seconds=_safe_int(data.get("time5K")),
+        time_10k_seconds=_safe_int(data.get("time10K")),
+        time_half_marathon_seconds=_safe_int(data.get("timeHalfMarathon")),
+        time_marathon_seconds=_safe_int(data.get("timeMarathon")),
+    )
 
 
 def extract_scheduled_workouts(data: dict[str, Any]) -> list[ScheduledWorkout]:

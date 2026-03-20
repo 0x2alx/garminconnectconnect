@@ -16,6 +16,7 @@ from garminconnect.sync.extractors import (
     extract_sleep_stages, extract_spo2_readings, extract_stress_readings,
     extract_training_plan, extract_training_readiness, extract_workouts,
     extract_scheduled_workouts, extract_trackpoints,
+    extract_endurance_score, extract_hill_score, extract_race_predictions,
 )
 
 logger = structlog.get_logger()
@@ -283,3 +284,45 @@ class SyncPipeline:
             except Exception as e:
                 logger.error("calendar_sync_failed", year=y, month=m, error=str(e))
         return count
+
+    def sync_endurance_score(self) -> bool:
+        """Sync endurance score from Garmin Connect."""
+        try:
+            raw_data = self._fetch_with_retry("endurance_score")
+            if raw_data:
+                self.repo.store_raw("endurance_score", date.today(), raw_data)
+                score = extract_endurance_score(date.today(), raw_data)
+                self.repo.upsert(score)
+                logger.info("synced_endurance_score")
+                return True
+        except Exception as e:
+            logger.error("endurance_score_sync_failed", error=str(e))
+        return False
+
+    def sync_hill_score(self) -> bool:
+        """Sync hill score from Garmin Connect."""
+        try:
+            raw_data = self._fetch_with_retry("hill_score")
+            if raw_data:
+                self.repo.store_raw("hill_score", date.today(), raw_data)
+                score = extract_hill_score(date.today(), raw_data)
+                self.repo.upsert(score)
+                logger.info("synced_hill_score")
+                return True
+        except Exception as e:
+            logger.error("hill_score_sync_failed", error=str(e))
+        return False
+
+    def sync_race_predictions(self) -> bool:
+        """Sync race predictions from Garmin Connect."""
+        try:
+            raw_data = self._fetch_with_retry("race_predictions")
+            if raw_data:
+                self.repo.store_raw("race_predictions", date.today(), raw_data)
+                pred = extract_race_predictions(date.today(), raw_data)
+                self.repo.upsert(pred)
+                logger.info("synced_race_predictions")
+                return True
+        except Exception as e:
+            logger.error("race_predictions_sync_failed", error=str(e))
+        return False
