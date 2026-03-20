@@ -71,3 +71,21 @@ class PersonalRecord(Base):
     value: Mapped[float | None] = mapped_column(Float, default=None)
     activity_id: Mapped[str | None] = mapped_column(String(30), default=None)
     pr_date: Mapped[date | None] = mapped_column(Date, default=None)
+
+
+class EnduranceScore(Base):
+    __tablename__ = "endurance_score"
+
+    date: Mapped[date] = mapped_column(Date, primary_key=True)
+    overall_score: Mapped[int | None] = mapped_column(Integer, default=None)
+    classification: Mapped[int | None] = mapped_column(SmallInteger, default=None)
+
+
+class HillScore(Base):
+    __tablename__ = "hill_score"
+
+    date: Mapped[date] = mapped_column(Date, primary_key=True)
+    overall_score: Mapped[int | None] = mapped_column(SmallInteger, default=None)
+    strength_score: Mapped[int | None] = mapped_column(SmallInteger, default=None)
+    endurance_score: Mapped[int | None] = mapped_column(SmallInteger, default=None)
+    vo2max: Mapped[float | None] = mapped_column(Float, default=None)

@@ -32,6 +32,48 @@ class Activity(Base):
     training_effect_anaerobic: Mapped[float | None] = mapped_column(Float, default=None)
     vo2max: Mapped[float | None] = mapped_column(Float, default=None)
 
+    # Running dynamics
+    avg_ground_contact_time: Mapped[float | None] = mapped_column(Float, default=None)
+    avg_ground_contact_balance: Mapped[float | None] = mapped_column(Float, default=None)
+    avg_vertical_oscillation: Mapped[float | None] = mapped_column(Float, default=None)
+    avg_stride_length: Mapped[float | None] = mapped_column(Float, default=None)
+    avg_vertical_ratio: Mapped[float | None] = mapped_column(Float, default=None)
+
+    # Performance
+    training_load: Mapped[float | None] = mapped_column(Float, default=None)
+    norm_power: Mapped[float | None] = mapped_column(Float, default=None)
+    max_power: Mapped[float | None] = mapped_column(Float, default=None)
+    avg_respiration_rate: Mapped[float | None] = mapped_column(Float, default=None)
+
+    # Pacing
+    moving_duration_seconds: Mapped[float | None] = mapped_column(Float, default=None)
+    fastest_split_1k_seconds: Mapped[float | None] = mapped_column(Float, default=None)
+    fastest_split_mile_seconds: Mapped[float | None] = mapped_column(Float, default=None)
+    fastest_split_5k_seconds: Mapped[float | None] = mapped_column(Float, default=None)
+
+    # HR zones (seconds in each zone)
+    hr_zone_1_seconds: Mapped[float | None] = mapped_column(Float, default=None)
+    hr_zone_2_seconds: Mapped[float | None] = mapped_column(Float, default=None)
+    hr_zone_3_seconds: Mapped[float | None] = mapped_column(Float, default=None)
+    hr_zone_4_seconds: Mapped[float | None] = mapped_column(Float, default=None)
+    hr_zone_5_seconds: Mapped[float | None] = mapped_column(Float, default=None)
+
+    # Metadata
+    location_name: Mapped[str | None] = mapped_column(String(200), default=None)
+    lap_count: Mapped[int | None] = mapped_column(SmallInteger, default=None)
+    steps: Mapped[int | None] = mapped_column(Integer, default=None)
+    water_estimated_ml: Mapped[int | None] = mapped_column(Integer, default=None)
+    body_battery_impact: Mapped[int | None] = mapped_column(SmallInteger, default=None)
+    training_effect_label: Mapped[str | None] = mapped_column(String(50), default=None)
+    moderate_intensity_minutes: Mapped[int | None] = mapped_column(SmallInteger, default=None)
+    vigorous_intensity_minutes: Mapped[int | None] = mapped_column(SmallInteger, default=None)
+
+    # GPS start/end
+    start_latitude: Mapped[float | None] = mapped_column(Float, default=None)
+    start_longitude: Mapped[float | None] = mapped_column(Float, default=None)
+    end_latitude: Mapped[float | None] = mapped_column(Float, default=None)
+    end_longitude: Mapped[float | None] = mapped_column(Float, default=None)
+
 
 class ActivityTrackpoint(Base):
     __tablename__ = "activity_trackpoints"

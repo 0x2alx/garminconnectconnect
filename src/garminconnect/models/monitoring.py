@@ -78,3 +78,10 @@ class BloodPressureReading(Base):
     diastolic: Mapped[int | None] = mapped_column(SmallInteger, default=None)
     pulse: Mapped[int | None] = mapped_column(SmallInteger, default=None)
     notes: Mapped[str | None] = mapped_column(String(200), default=None)
+
+
+class HRVReading(Base):
+    __tablename__ = "hrv_readings"
+
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
+    hrv_value: Mapped[int | None] = mapped_column(SmallInteger, default=None)
