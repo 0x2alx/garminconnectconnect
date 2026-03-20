@@ -30,6 +30,12 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+# Override sqlalchemy.url from app settings when POSTGRES_PASSWORD env var is set.
+# This allows running alembic locally against the Docker DB without editing alembic.ini.
+if os.environ.get("POSTGRES_PASSWORD"):
+    from garminconnect.config import settings
+    config.set_main_option("sqlalchemy.url", settings.postgres_url)
+
 # add your model's MetaData object here
 # for 'autogenerate' support
 target_metadata = Base.metadata
