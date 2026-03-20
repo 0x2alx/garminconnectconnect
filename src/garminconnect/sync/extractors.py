@@ -7,7 +7,7 @@ from garminconnect.models.monitoring import (
     BodyBatteryReading, HeartRateReading, RespirationReading, SpO2Reading, StressReading,
     BodyBatteryEvent, IntensityMinutesReading, FloorsReading, BloodPressureReading,
 )
-from garminconnect.models.sleep import SleepSummary
+from garminconnect.models.sleep import SleepSummary, SleepStage
 from garminconnect.models.activities import Activity
 from garminconnect.models.training import HRVSummary, TrainingReadiness, RunningTolerance, PersonalRecord
 from garminconnect.models.workouts import Workout, Badge, TrainingPlan, ScheduledWorkout
@@ -229,6 +229,31 @@ def extract_sleep_summary(target_date: date, data: dict[str, Any]) -> SleepSumma
     )
 
 
+_SLEEP_ACTIVITY_LEVELS = {0: "deep", 1: "light", 2: "awake", 3: "rem"}
+
+
+def extract_sleep_stages(data: dict[str, Any]) -> list[SleepStage]:
+    """Extract sleep stages from sleepLevels array."""
+    levels = data.get("sleepLevels") or []
+    stages = []
+    for level in levels:
+        if not isinstance(level, dict):
+            continue
+        start = _parse_garmin_timestamp(level.get("startGMT"))
+        end = _parse_garmin_timestamp(level.get("endGMT"))
+        if start is None or end is None:
+            continue
+        activity_level = level.get("activityLevel")
+        stage_name = _SLEEP_ACTIVITY_LEVELS.get(activity_level, f"unknown_{activity_level}")
+        duration = int((end - start).total_seconds())
+        stages.append(SleepStage(
+            timestamp=start,
+            stage=stage_name,
+            duration_seconds=duration,
+        ))
+    return stages
+
+
 def _parse_garmin_timestamp(value: Any) -> datetime | None:
     """Parse Garmin timestamps which come as 'YYYY-MM-DD HH:MM:SS', ISO format, or epoch ms."""
     if value is None:
@@ -292,18 +317,22 @@ def extract_activity(data: dict[str, Any]) -> Activity:
 
 
 def extract_hrv_summary(target_date: date, data: dict[str, Any]) -> HRVSummary:
-    # HRV response may have data nested under hrvSummaries
-    if isinstance(data, dict) and "hrvSummaries" in data:
-        summaries = data["hrvSummaries"]
-        if isinstance(summaries, list) and summaries:
-            data = summaries[0]
+    # HRV response may nest data under hrvSummary (dict) or hrvSummaries (list)
+    if isinstance(data, dict):
+        if "hrvSummary" in data:
+            data = data["hrvSummary"]
+        elif "hrvSummaries" in data:
+            summaries = data["hrvSummaries"]
+            if isinstance(summaries, list) and summaries:
+                data = summaries[0]
+    baseline = data.get("baseline") or {}
     return HRVSummary(
         date=target_date,
         weekly_avg=data.get("weeklyAvg"),
         last_night_avg=data.get("lastNightAvg"),
         last_night_5min_high=data.get("lastNight5MinHigh"),
-        baseline_low=data.get("baselineLowUpper"),
-        baseline_high=data.get("baselineBalancedUpper"),
+        baseline_low=baseline.get("lowUpper") or data.get("baselineLowUpper"),
+        baseline_high=baseline.get("balancedUpper") or data.get("baselineBalancedUpper"),
         status=data.get("status"),
     )
 
@@ -334,16 +363,24 @@ def extract_body_battery_events(data: Any) -> list[BodyBatteryEvent]:
     for item in items:
         if not isinstance(item, dict):
             continue
-        ts_ms = item.get("startTimestampGMT")
-        if ts_ms is None:
+        # Events may be nested under an "event" sub-key
+        event = item.get("event", item)
+        ts_raw = event.get("startTimestampGMT") or event.get("eventStartTimeGmt")
+        if ts_raw is None:
             continue
-        duration_ms = item.get("durationInMilliseconds")
+        if isinstance(ts_raw, (int, float)):
+            ts = _ts_to_dt(int(ts_raw))
+        else:
+            ts = _parse_garmin_timestamp(str(ts_raw))
+            if ts is None:
+                continue
+        duration_ms = event.get("durationInMilliseconds")
         events.append(BodyBatteryEvent(
-            timestamp=_ts_to_dt(int(ts_ms)),
-            event_type=item.get("eventType"),
-            body_battery_impact=item.get("bodyBatteryImpact"),
+            timestamp=ts,
+            event_type=event.get("eventType"),
+            body_battery_impact=event.get("bodyBatteryImpact"),
             duration_minutes=int(duration_ms / 60000) if duration_ms else None,
-            feedback_type=item.get("feedbackType"),
+            feedback_type=event.get("feedbackType"),
         ))
     return events
 
@@ -468,6 +505,17 @@ def extract_workouts(data: Any) -> list[Workout]:
     return workouts
 
 
+_BADGE_CATEGORIES = {
+    1: "Activity",
+    2: "Steps",
+    3: "Distance",
+    4: "Floors",
+    5: "Social",
+    6: "Miscellaneous",
+    7: "Challenges",
+}
+
+
 def extract_badges(data: Any) -> list[Badge]:
     items = data if isinstance(data, list) else data.get("badges", []) if isinstance(data, dict) else []
     badges = []
@@ -477,13 +525,19 @@ def extract_badges(data: Any) -> list[Badge]:
         badge_id = item.get("badgeId")
         if not badge_id:
             continue
-        earned_dt = _parse_garmin_timestamp(item.get("earnedDate"))
+        earned_dt = _parse_garmin_timestamp(
+            item.get("badgeEarnedDate") or item.get("earnedDate")
+        )
+        category = (
+            item.get("badgeCategoryName")
+            or _BADGE_CATEGORIES.get(item.get("badgeCategoryId"))
+        )
         badges.append(Badge(
             badge_id=str(badge_id),
             name=item.get("badgeName"),
-            category=item.get("badgeCategoryName"),
+            category=category,
             earned_date=earned_dt,
-            earned_number=item.get("earnedNumber"),
+            earned_number=item.get("badgeEarnedNumber") or item.get("earnedNumber"),
         ))
     return badges
 
