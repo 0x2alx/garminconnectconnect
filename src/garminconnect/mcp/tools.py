@@ -194,6 +194,46 @@ QUERY_TEMPLATES = {
         WHERE timestamp >= :start AND timestamp < :end
         ORDER BY timestamp
     """,
+    "activity_running_dynamics": """
+        SELECT activity_id, name, start_time,
+               avg_ground_contact_time, avg_ground_contact_balance,
+               avg_vertical_oscillation, avg_stride_length, avg_vertical_ratio,
+               training_load, norm_power
+        FROM activities
+        WHERE avg_ground_contact_time IS NOT NULL
+        ORDER BY start_time DESC
+        LIMIT :limit
+    """,
+    "activity_hr_zones": """
+        SELECT activity_id, name, start_time, activity_type,
+               hr_zone_1_seconds, hr_zone_2_seconds, hr_zone_3_seconds,
+               hr_zone_4_seconds, hr_zone_5_seconds
+        FROM activities
+        WHERE hr_zone_1_seconds IS NOT NULL
+        ORDER BY start_time DESC
+        LIMIT :limit
+    """,
+    "endurance_hill_scores": """
+        SELECT e.date, e.overall_score AS endurance, e.classification,
+               h.overall_score AS hill, h.strength_score, h.endurance_score AS hill_endurance
+        FROM endurance_score e
+        LEFT JOIN hill_score h ON e.date = h.date
+        WHERE e.date BETWEEN :start AND :end
+        ORDER BY e.date DESC
+    """,
+    "training_status_trend": """
+        SELECT date, training_status, weekly_load, load_focus,
+               vo2max_running, vo2max_cycling, fitness_age
+        FROM training_status
+        WHERE date BETWEEN :start AND :end
+        ORDER BY date DESC
+    """,
+    "hrv_readings_intraday": """
+        SELECT timestamp, hrv_value
+        FROM hrv_readings
+        WHERE timestamp >= :start AND timestamp < :end
+        ORDER BY timestamp
+    """,
 }
 
 
@@ -205,5 +245,6 @@ def get_table_list() -> list[str]:
         "sleep_summary", "sleep_stages", "activities", "activity_trackpoints",
         "hrv", "training_readiness", "training_status",
         "race_predictions", "running_tolerance", "personal_records",
-        "workouts", "badges", "training_plans", "scheduled_workouts", "sync_status",
+        "workouts", "badges", "training_plans", "scheduled_workouts",
+        "endurance_score", "hill_score", "hrv_readings", "sync_status",
     ]
