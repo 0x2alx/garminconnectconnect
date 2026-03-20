@@ -188,6 +188,12 @@ QUERY_TEMPLATES = {
         ORDER BY date
         LIMIT :limit
     """,
+    "sleep_stages_intraday": """
+        SELECT timestamp, stage, duration_seconds
+        FROM sleep_stages
+        WHERE timestamp >= :start AND timestamp < :end
+        ORDER BY timestamp
+    """,
 }
 
 

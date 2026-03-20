@@ -13,8 +13,9 @@ from garminconnect.sync.extractors import (
     extract_daily_summary, extract_floors_readings, extract_heart_rate_readings,
     extract_hrv_summary, extract_intensity_minutes_readings, extract_personal_records,
     extract_respiration_readings, extract_running_tolerance, extract_sleep_summary,
-    extract_spo2_readings, extract_stress_readings, extract_training_plan,
-    extract_training_readiness, extract_workouts, extract_scheduled_workouts,
+    extract_sleep_stages, extract_spo2_readings, extract_stress_readings,
+    extract_training_plan, extract_training_readiness, extract_workouts,
+    extract_scheduled_workouts,
 )
 
 logger = structlog.get_logger()
@@ -23,7 +24,7 @@ EXTRACTORS: dict[str, Any] = {
     "daily_summary": lambda d, data: [extract_daily_summary(d, data)],
     "heart_rate": lambda d, data: extract_heart_rate_readings(data),
     "stress": lambda d, data: extract_stress_readings(data),
-    "sleep": lambda d, data: [extract_sleep_summary(d, data)],
+    "sleep": lambda d, data: [extract_sleep_summary(d, data)] + extract_sleep_stages(data),
     "hrv": lambda d, data: [extract_hrv_summary(d, data)],
     "training_readiness": lambda d, data: [extract_training_readiness(d, data)],
     "respiration": lambda d, data: extract_respiration_readings(data),
