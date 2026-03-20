@@ -77,6 +77,20 @@ def upgrade() -> None:
     )
 
     op.create_table(
+        "activity_trackpoints",
+        sa.Column("activity_id", sa.String(50), primary_key=True),
+        sa.Column("timestamp", sa.DateTime(timezone=True), primary_key=True),
+        sa.Column("latitude", sa.Float(), nullable=True),
+        sa.Column("longitude", sa.Float(), nullable=True),
+        sa.Column("altitude", sa.Float(), nullable=True),
+        sa.Column("heart_rate", sa.SmallInteger(), nullable=True),
+        sa.Column("cadence", sa.SmallInteger(), nullable=True),
+        sa.Column("speed", sa.Float(), nullable=True),
+        sa.Column("power", sa.Float(), nullable=True),
+    )
+    op.execute("SELECT create_hypertable('activity_trackpoints', 'timestamp', if_not_exists => TRUE)")
+
+    op.create_table(
         "hrv_readings",
         sa.Column("timestamp", sa.DateTime(timezone=True), primary_key=True),
         sa.Column("hrv_value", sa.SmallInteger(), nullable=True),
@@ -86,6 +100,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table("hrv_readings")
+    op.drop_table("activity_trackpoints")
     op.drop_table("hill_score")
     op.drop_table("endurance_score")
 

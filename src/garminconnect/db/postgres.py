@@ -21,6 +21,8 @@ HYPERTABLES = [
     ("spo2", "timestamp"),
     ("respiration", "timestamp"),
     ("sleep_stages", "timestamp"),
+    ("activity_trackpoints", "timestamp"),
+    ("hrv_readings", "timestamp"),
 ]
 
 

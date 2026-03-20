@@ -52,11 +52,9 @@ def backfill(days: int, force: bool) -> None:
     pipeline.sync_range(start, end, force=force)
     click.echo("Syncing body composition...")
     pipeline.sync_body_composition(start, end)
-    click.echo("Syncing activities...")
+    click.echo("Syncing activities (with trackpoints)...")
     synced_ids = pipeline.sync_activities(limit=100)
-    if synced_ids:
-        click.echo(f"Syncing trackpoints for {len(synced_ids)} activities...")
-        pipeline.sync_activity_details(synced_ids)
+    click.echo(f"Synced {len(synced_ids)} activities.")
     click.echo("Syncing endurance score...")
     pipeline.sync_endurance_score()
     click.echo("Syncing hill score...")
