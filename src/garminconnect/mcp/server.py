@@ -51,6 +51,8 @@ _WRITE_KEYWORDS = re.compile(
 def create_mcp_server(postgres_url: str, api_key: str = "") -> FastMCP:
     mcp = FastMCP("Garmin Health Data")
     mcp._auth_api_key = api_key
+    if postgres_url.startswith("postgresql://"):
+        postgres_url = postgres_url.replace("postgresql://", "postgresql+psycopg://", 1)
     engine = create_engine(postgres_url, pool_pre_ping=True)
     ro_engine = create_engine(postgres_url, pool_pre_ping=True,
                               execution_options={"isolation_level": "AUTOCOMMIT"})
