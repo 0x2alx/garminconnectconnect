@@ -49,8 +49,8 @@ docker compose run --rm garmin-cli status
 
 - `src/garminconnect/config.py` — Pydantic Settings class, all config via env vars (30+), see `.env.example`
 - `src/garminconnect/auth/` — garth-based Garmin Connect authentication, token auto-refresh
-- `src/garminconnect/api/` — API client with 30 endpoint definitions, rate limiting (1 req/sec), URL templating with `{date}`, `{user_id}`, `{activity_id}` placeholders
-- `src/garminconnect/models/` — SQLAlchemy models for 16 tables (daily, monitoring, sleep, activities, training)
+- `src/garminconnect/api/` — API client with 39 endpoint definitions, rate limiting (1 req/sec), URL templating with `{date}`, `{user_id}`, `{activity_id}` placeholders
+- `src/garminconnect/models/` — SQLAlchemy models for 28 tables (daily, monitoring, sleep, activities, training, workouts, gamification)
 - `src/garminconnect/db/` — TimescaleDB + MongoDB connection and HealthRepository pattern (unified interface for both DBs)
 - `src/garminconnect/sync/` — extractors (JSON→models), sync pipeline (fetch→store raw→extract→upsert), APScheduler daemon
 - `src/garminconnect/mcp/` — FastMCP server with 6 tools, BearerAuthMiddleware, read-only SQL enforcement via regex
@@ -62,7 +62,7 @@ docker compose run --rm garmin-cli status
 
 - **Dual database**: TimescaleDB for queryable processed data, MongoDB for raw JSON archival (future reprocessing)
 - **garth for auth**: Community-maintained OAuth library, more reliable than self-rolled SSO
-- **Hypertables**: HR, stress, body battery, SpO2, respiration, sleep stages use TimescaleDB hypertables for time-series performance
+- **Hypertables**: HR, stress, body battery, SpO2, respiration, sleep stages, activity trackpoints, HRV readings use TimescaleDB hypertables for time-series performance
 - **Idempotent sync**: sync_status table tracks what's been synced per metric per date, prevents re-fetching
 - **Rate limiting**: 1 second minimum between API calls, 10-minute polling interval (safe for Garmin's undocumented limits)
 - **Docker profiles**: `garmin-cli` uses `profiles: ["cli"]` so it doesn't auto-start with `docker compose up`
@@ -73,7 +73,7 @@ docker compose run --rm garmin-cli status
 ## Testing
 
 - **Async mode**: pytest-asyncio with `asyncio_mode = "auto"` (pyproject.toml)
-- **Fixtures**: Sample Garmin JSON responses in `tests/fixtures/` (daily_summary.json, heart_rate.json, stress.json, sleep.json)
+- **Fixtures**: Sample Garmin JSON responses in `tests/fixtures/` (daily_summary.json, heart_rate.json, stress.json, sleep.json, activity_detail.json, activity_gps.json, endurance_score.json, hill_score.json, race_predictions.json, training_status.json)
 - **Integration tests**: Use testcontainers to spin up real PostgreSQL + MongoDB — require Docker running
 - **Code style**: ruff (line-length=100, target py312)
 

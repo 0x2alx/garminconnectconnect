@@ -236,16 +236,35 @@ Use with `query_health_data(query_name, start_date, end_date)`. You can also pas
 |------------|----------------|
 | `daily_overview` | Steps, calories, RHR, stress, body battery, SpO2 |
 | `sleep_trend` | Hours slept (deep/light/REM), sleep score |
+| `sleep_stages_intraday` | Per-stage timestamps and durations |
 | `hr_intraday` | Per-minute heart rate readings |
 | `stress_intraday` | Per-3-minute stress readings |
 | `activity_list` | Recent activities with distance, duration, HR |
 | `activity_detail` | Detailed activity data (HR, speed, cadence, training effect, VO2max) |
+| `activity_running_dynamics` | Ground contact time, vertical oscillation, stride length, power |
+| `activity_hr_zones` | Time in each HR zone per activity |
+| `activity_trackpoints` | Per-second GPS, HR, cadence, speed, power for an activity |
 | `training_readiness_trend` | Readiness score breakdown |
+| `training_status_trend` | Training status, weekly load, VO2max, fitness age |
 | `hrv_trend` | HRV weekly average and last night |
+| `hrv_readings_intraday` | Overnight 5-minute HRV readings |
 | `body_composition_trend` | Weight and body fat percentage |
 | `weekly_comparison` | This week vs last week averages |
 | `personal_records` | Per-activity-type bests (longest, fastest, most elevation) |
+| `personal_records_list` | Individual PRs with dates and activity references |
 | `recovery_analysis` | Combined RHR, stress, sleep, HRV, and readiness data |
+| `body_battery_event_timeline` | Charge/drain events with feedback type |
+| `intensity_minutes_intraday` | Intraday moderate and vigorous intensity minutes |
+| `floors_intraday` | Intraday floors ascended and descended |
+| `blood_pressure_trend` | Systolic, diastolic, pulse over time |
+| `running_tolerance_trend` | Heat and altitude acclimation scores |
+| `endurance_hill_scores` | Endurance and hill score trends |
+| `race_predictions_trend` | 5K, 10K, half-marathon, marathon time predictions |
+| `workout_list` | Saved workout definitions |
+| `badges_earned` | Earned badges with category and date |
+| `training_plan_status` | Active training plan metadata |
+| `scheduled_workouts` | Scheduled workouts for a date range |
+| `upcoming_workouts` | Upcoming scheduled workouts from today |
 
 ### Example Claude Code Prompts
 
@@ -321,6 +340,19 @@ docker compose restart garmin-server
 | `training_readiness` | 1 per day | Score, sleep/recovery/HRV components |
 | `training_status` | 1 per day | Status, weekly load, VO2max, fitness age |
 | `race_predictions` | 1 per day | 5K, 10K, half-marathon, marathon times |
+| `endurance_score` | 1 per day | Overall endurance score, classification |
+| `hill_score` | 1 per day | Overall, strength, and endurance hill scores |
+| `running_tolerance` | 1 per day | Heat and altitude acclimation |
+| `intensity_minutes` | Intraday | Moderate and vigorous intensity minutes |
+| `floors` | Intraday | Floors ascended and descended |
+| `blood_pressure` | Per measurement | Systolic, diastolic, pulse |
+| `body_battery_events` | Per event | Charge/drain events with impact |
+| `personal_records` | Per record | PRs by type with activity references |
+| `workouts` | Per workout | Saved workout definitions |
+| `badges` | Per badge | Earned badges with category and date |
+| `training_plans` | Per plan | Active training plan metadata |
+| `scheduled_workouts` | Per event | Scheduled workouts from Garmin calendar |
+| `hrv_readings` | ~5 min overnight | Overnight HRV readings (hypertable) |
 | `sync_status` | Per metric per day | Tracking what has been synced |
 
 Tables marked "hypertable" use TimescaleDB time-series partitioning for efficient queries on large datasets.
@@ -421,7 +453,7 @@ This project is designed to run on a private server (e.g., a home server or VPS)
 
 ## Garmin API Endpoints Polled
 
-The server polls 30 Garmin Connect API endpoints across 7 categories:
+The server polls 39 Garmin Connect API endpoints across 10 categories:
 
 **Daily Health:** daily summary, steps, stats, hydration
 
@@ -502,9 +534,9 @@ pytest tests/test_integration.py -v
 ```
 src/garminconnect/
   auth/client.py         # Garth-based Garmin authentication
-  api/endpoints.py       # 30 API endpoint definitions
+  api/endpoints.py       # 39 API endpoint definitions
   api/client.py          # API client with rate limiting
-  models/                # SQLAlchemy models (16 tables)
+  models/                # SQLAlchemy models (28 tables)
     daily.py             # DailySummary, BodyComposition
     monitoring.py        # HeartRate, Stress, BodyBattery, SpO2, Respiration
     sleep.py             # SleepSummary, SleepStages
@@ -521,7 +553,7 @@ src/garminconnect/
     scheduler.py         # APScheduler polling daemon
   mcp/
     server.py            # FastMCP server (6 tools) + bearer auth middleware
-    tools.py             # SQL query templates (12 pre-built queries)
+    tools.py             # SQL query templates (31 pre-built queries)
   cli/commands.py        # Click CLI (login, backfill, sync-one, daemon, mcp, status)
   config.py              # Pydantic settings (all env vars)
   utils/date_ranges.py   # Garmin-aligned date range helpers
