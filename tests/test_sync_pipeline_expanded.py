@@ -20,9 +20,13 @@ class TestSyncActivities:
     def test_basic(self):
         mock_api = MagicMock()
         mock_repo = MagicMock()
-        mock_api.fetch.return_value = [
-            {"activityId": 111, "activityName": "Run", "startTimeGMT": "2026-03-17 07:00:00"},
-            {"activityId": 222, "activityName": "Walk"},
+        mock_api.fetch.side_effect = [
+            [
+                {"activityId": 111, "activityName": "Run", "startTimeGMT": "2026-03-17 07:00:00"},
+                {"activityId": 222, "activityName": "Walk"},
+            ],
+            None,  # activity_gps for id=111
+            None,  # activity_gps for id=222
         ]
         pipeline = SyncPipeline(api_client=mock_api, repository=mock_repo)
         ids = pipeline.sync_activities()
@@ -39,9 +43,10 @@ class TestSyncActivities:
     def test_dict_response(self):
         mock_api = MagicMock()
         mock_repo = MagicMock()
-        mock_api.fetch.return_value = {
-            "activities": [{"activityId": 333, "activityName": "Swim"}]
-        }
+        mock_api.fetch.side_effect = [
+            {"activities": [{"activityId": 333, "activityName": "Swim"}]},
+            None,  # activity_gps for id=333
+        ]
         pipeline = SyncPipeline(api_client=mock_api, repository=mock_repo)
         ids = pipeline.sync_activities()
         assert ids == ["333"]
@@ -49,7 +54,10 @@ class TestSyncActivities:
     def test_missing_activity_id_skipped(self):
         mock_api = MagicMock()
         mock_repo = MagicMock()
-        mock_api.fetch.return_value = [{"activityName": "No ID"}]
+        mock_api.fetch.side_effect = [
+            [{"activityName": "No ID"}],
+            # No GPS call expected since no valid activity IDs
+        ]
         pipeline = SyncPipeline(api_client=mock_api, repository=mock_repo)
         assert pipeline.sync_activities() == []
 
@@ -133,8 +141,9 @@ class TestActivityPagination:
     def test_stops_at_max_activities(self):
         mock_api = MagicMock()
         mock_repo = MagicMock()
-        # Returns full pages indefinitely
-        mock_api.fetch.return_value = [{"activityId": i} for i in range(5)]
+        page = [{"activityId": i} for i in range(5)]
+        # Two full pages of activities + GPS calls for up to 10 activities
+        mock_api.fetch.side_effect = [page, page] + [None] * 10
         pipeline = SyncPipeline(api_client=mock_api, repository=mock_repo)
         ids = pipeline.sync_activities(limit=5, max_activities=10)
         assert len(ids) <= 10

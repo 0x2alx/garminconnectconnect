@@ -234,6 +234,20 @@ QUERY_TEMPLATES = {
         WHERE timestamp >= :start AND timestamp < :end
         ORDER BY timestamp
     """,
+    "activity_trackpoints": """
+        SELECT timestamp, latitude, longitude, altitude,
+               heart_rate, cadence, speed, power
+        FROM activity_trackpoints
+        WHERE activity_id = :activity_id
+        ORDER BY timestamp
+    """,
+    "race_predictions_trend": """
+        SELECT date, time_5k_seconds, time_10k_seconds,
+               time_half_marathon_seconds, time_marathon_seconds
+        FROM race_predictions
+        WHERE date BETWEEN :start AND :end
+        ORDER BY date DESC
+    """,
 }
 
 
