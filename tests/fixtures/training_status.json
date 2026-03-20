@@ -12,15 +12,21 @@
     "metricsTrainingLoadBalanceDTOMap": {
       "3500929317": {
         "calendarDate": "2026-03-19",
-        "weeklyTrainingLoad": 500.0,
-        "trainingLoadBalanceFeedback": "RECOVERY",
-        "acuteTrainingLoadHigh": 150,
-        "chronicTrainingLoad": 100
+        "trainingBalanceFeedbackPhrase": "BALANCED"
       }
     }
   },
-  "latestTrainingStatusData": {
-    "trainingStatus": "PRODUCTIVE",
-    "loadFocus": "CARDIO"
+  "mostRecentTrainingStatus": {
+    "latestTrainingStatusData": {
+      "3500929317": {
+        "calendarDate": "2026-03-19",
+        "trainingStatus": 4,
+        "trainingStatusFeedbackPhrase": "PRODUCTIVE_9",
+        "acuteTrainingLoadDTO": {
+          "dailyTrainingLoadChronic": 450,
+          "dailyTrainingLoadAcute": 843
+        }
+      }
+    }
   }
 }

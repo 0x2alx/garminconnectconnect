@@ -126,7 +126,8 @@ def test_extract_training_status():
     ts = extract_training_status(date(2026, 3, 19), data)
     assert ts.training_status == "PRODUCTIVE"
     assert ts.vo2max_running == pytest.approx(43.8, abs=0.1)
-    assert ts.weekly_load == pytest.approx(500.0)
+    assert ts.weekly_load == pytest.approx(450.0)
+    assert ts.load_focus == "PRODUCTIVE_9"
 
 
 def test_extract_hrv_readings():

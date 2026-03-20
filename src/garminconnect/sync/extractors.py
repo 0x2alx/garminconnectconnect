@@ -698,25 +698,59 @@ def extract_scheduled_workouts(data: dict[str, Any]) -> list[ScheduledWorkout]:
     return results
 
 
+_TRAINING_STATUS_MAP = {
+    0: "NOT_ENOUGH_DATA", 1: "DETRAINING", 2: "RECOVERY", 3: "MAINTAINING",
+    4: "PRODUCTIVE", 5: "PEAKING", 6: "OVERREACHING", 7: "PRODUCTIVE",
+    8: "UNPRODUCTIVE", 9: "NO_STATUS",
+}
+
+
 def extract_training_status(target_date: date, data: dict[str, Any]) -> TrainingStatus:
-    latest = data.get("latestTrainingStatusData") or {}
     vo2max_data = data.get("mostRecentVO2Max") or {}
     generic = vo2max_data.get("generic") or {}
     cycling = vo2max_data.get("cycling") or {}
 
-    # Get weekly load from training load balance
-    load_balance = data.get("mostRecentTrainingLoadBalance") or {}
-    load_map = load_balance.get("metricsTrainingLoadBalanceDTOMap") or {}
+    # latestTrainingStatusData is nested under mostRecentTrainingStatus, keyed by device ID
+    training_status_wrapper = data.get("mostRecentTrainingStatus") or {}
+    latest_map = training_status_wrapper.get("latestTrainingStatusData") or {}
+    # If latestTrainingStatusData is at top level (test fixture format), try that too
+    if not latest_map:
+        latest_map = data.get("latestTrainingStatusData") or {}
+    # Pick first device's data
+    latest: dict[str, Any] = {}
+    if isinstance(latest_map, dict):
+        for v in latest_map.values():
+            if isinstance(v, dict):
+                latest = v
+                break
+
+    # trainingStatus may be numeric or string
+    raw_status = latest.get("trainingStatus")
+    if isinstance(raw_status, int):
+        training_status = _TRAINING_STATUS_MAP.get(raw_status, f"UNKNOWN_{raw_status}")
+    else:
+        training_status = raw_status
+
+    # Weekly load from acute training load DTO or load balance
     weekly_load = None
-    for device_data in load_map.values():
-        weekly_load = device_data.get("weeklyTrainingLoad")
-        break  # Take first device
+    acute = latest.get("acuteTrainingLoadDTO") or {}
+    weekly_load = acute.get("dailyTrainingLoadChronic")
+    if weekly_load is None:
+        load_balance = data.get("mostRecentTrainingLoadBalance") or {}
+        load_map = load_balance.get("metricsTrainingLoadBalanceDTOMap") or {}
+        for device_data in load_map.values():
+            if isinstance(device_data, dict):
+                weekly_load = device_data.get("weeklyTrainingLoad")
+                break
+
+    # Load focus from feedback phrase
+    load_focus = latest.get("trainingStatusFeedbackPhrase") or latest.get("loadFocus")
 
     return TrainingStatus(
         date=target_date,
-        training_status=latest.get("trainingStatus"),
+        training_status=training_status,
         weekly_load=weekly_load,
-        load_focus=latest.get("loadFocus"),
+        load_focus=load_focus,
         vo2max_running=generic.get("vo2MaxPreciseValue"),
         vo2max_cycling=(cycling or {}).get("vo2MaxPreciseValue"),
         fitness_age=generic.get("fitnessAge"),
