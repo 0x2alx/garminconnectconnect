@@ -4,12 +4,15 @@ from datetime import date, datetime, timezone
 from typing import Any
 from garminconnect.models.daily import DailySummary, BodyComposition
 from garminconnect.models.monitoring import (
-    BodyBatteryReading, HeartRateReading, RespirationReading, SpO2Reading, StressReading,
-    BodyBatteryEvent, IntensityMinutesReading, FloorsReading, BloodPressureReading,
+    BodyBatteryReading, HeartRateReading, HRVReading, RespirationReading, SpO2Reading,
+    StressReading, BodyBatteryEvent, IntensityMinutesReading, FloorsReading, BloodPressureReading,
 )
 from garminconnect.models.sleep import SleepSummary, SleepStage
 from garminconnect.models.activities import Activity, ActivityTrackpoint
-from garminconnect.models.training import HRVSummary, TrainingReadiness, RunningTolerance, PersonalRecord, EnduranceScore, HillScore, RacePrediction
+from garminconnect.models.training import (
+    HRVSummary, TrainingReadiness, TrainingStatus, RunningTolerance,
+    PersonalRecord, EnduranceScore, HillScore, RacePrediction,
+)
 from garminconnect.models.workouts import Workout, Badge, TrainingPlan, ScheduledWorkout
 
 
@@ -693,3 +696,41 @@ def extract_scheduled_workouts(data: dict[str, Any]) -> list[ScheduledWorkout]:
             item_type=item.get("itemType"),
         ))
     return results
+
+
+def extract_training_status(target_date: date, data: dict[str, Any]) -> TrainingStatus:
+    latest = data.get("latestTrainingStatusData") or {}
+    vo2max_data = data.get("mostRecentVO2Max") or {}
+    generic = vo2max_data.get("generic") or {}
+    cycling = vo2max_data.get("cycling") or {}
+
+    # Get weekly load from training load balance
+    load_balance = data.get("mostRecentTrainingLoadBalance") or {}
+    load_map = load_balance.get("metricsTrainingLoadBalanceDTOMap") or {}
+    weekly_load = None
+    for device_data in load_map.values():
+        weekly_load = device_data.get("weeklyTrainingLoad")
+        break  # Take first device
+
+    return TrainingStatus(
+        date=target_date,
+        training_status=latest.get("trainingStatus"),
+        weekly_load=weekly_load,
+        load_focus=latest.get("loadFocus"),
+        vo2max_running=generic.get("vo2MaxPreciseValue"),
+        vo2max_cycling=(cycling or {}).get("vo2MaxPreciseValue"),
+        fitness_age=generic.get("fitnessAge"),
+    )
+
+
+def extract_hrv_readings(data: dict[str, Any]) -> list[HRVReading]:
+    readings_data = data.get("hrvReadings") or []
+    readings = []
+    for item in readings_data:
+        if not isinstance(item, dict):
+            continue
+        ts = _parse_garmin_timestamp(item.get("readingTimeGMT"))
+        value = item.get("hrvValue")
+        if ts is not None and value is not None:
+            readings.append(HRVReading(timestamp=ts, hrv_value=int(value)))
+    return readings

@@ -6,7 +6,7 @@ from garminconnect.sync.extractors import (
     extract_daily_summary, extract_heart_rate_readings,
     extract_stress_readings, extract_sleep_summary, extract_activity,
     extract_trackpoints, extract_endurance_score, extract_hill_score,
-    extract_race_predictions,
+    extract_race_predictions, extract_training_status, extract_hrv_readings,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -118,3 +118,24 @@ def test_extract_race_predictions():
     pred = extract_race_predictions(date(2026, 3, 20), data)
     assert pred.time_5k_seconds == 1500
     assert pred.time_marathon_seconds == 14400
+
+
+def test_extract_training_status():
+    with open("tests/fixtures/training_status.json") as f:
+        data = json.load(f)
+    ts = extract_training_status(date(2026, 3, 19), data)
+    assert ts.training_status == "PRODUCTIVE"
+    assert ts.vo2max_running == pytest.approx(43.8, abs=0.1)
+    assert ts.weekly_load == pytest.approx(500.0)
+
+
+def test_extract_hrv_readings():
+    data = {
+        "hrvReadings": [
+            {"hrvValue": 65, "readingTimeGMT": "2026-03-17T03:57:41.0"},
+            {"hrvValue": 68, "readingTimeGMT": "2026-03-17T04:02:41.0"},
+        ]
+    }
+    readings = extract_hrv_readings(data)
+    assert len(readings) == 2
+    assert readings[0].hrv_value == 65

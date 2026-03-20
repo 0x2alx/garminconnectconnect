@@ -1,0 +1,26 @@
+{
+  "mostRecentVO2Max": {
+    "generic": {
+      "calendarDate": "2026-03-18",
+      "vo2MaxPreciseValue": 43.8,
+      "vo2MaxValue": 44.0,
+      "fitnessAge": null
+    },
+    "cycling": null
+  },
+  "mostRecentTrainingLoadBalance": {
+    "metricsTrainingLoadBalanceDTOMap": {
+      "3500929317": {
+        "calendarDate": "2026-03-19",
+        "weeklyTrainingLoad": 500.0,
+        "trainingLoadBalanceFeedback": "RECOVERY",
+        "acuteTrainingLoadHigh": 150,
+        "chronicTrainingLoad": 100
+      }
+    }
+  },
+  "latestTrainingStatusData": {
+    "trainingStatus": "PRODUCTIVE",
+    "loadFocus": "CARDIO"
+  }
+}

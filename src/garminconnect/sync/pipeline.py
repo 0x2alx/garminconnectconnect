@@ -11,10 +11,10 @@ from garminconnect.sync.extractors import (
     extract_activity, extract_badges, extract_blood_pressure_readings,
     extract_body_battery_events, extract_body_battery_readings, extract_body_composition,
     extract_daily_summary, extract_floors_readings, extract_heart_rate_readings,
-    extract_hrv_summary, extract_intensity_minutes_readings, extract_personal_records,
-    extract_respiration_readings, extract_running_tolerance, extract_sleep_summary,
-    extract_sleep_stages, extract_spo2_readings, extract_stress_readings,
-    extract_training_plan, extract_training_readiness, extract_workouts,
+    extract_hrv_summary, extract_hrv_readings, extract_intensity_minutes_readings,
+    extract_personal_records, extract_respiration_readings, extract_running_tolerance,
+    extract_sleep_summary, extract_sleep_stages, extract_spo2_readings, extract_stress_readings,
+    extract_training_plan, extract_training_readiness, extract_training_status, extract_workouts,
     extract_scheduled_workouts, extract_trackpoints,
     extract_endurance_score, extract_hill_score, extract_race_predictions,
 )
@@ -26,7 +26,7 @@ EXTRACTORS: dict[str, Any] = {
     "heart_rate": lambda d, data: extract_heart_rate_readings(data),
     "stress": lambda d, data: extract_stress_readings(data),
     "sleep": lambda d, data: [extract_sleep_summary(d, data)] + extract_sleep_stages(data),
-    "hrv": lambda d, data: [extract_hrv_summary(d, data)],
+    "hrv": lambda d, data: [extract_hrv_summary(d, data)] + extract_hrv_readings(data),
     "training_readiness": lambda d, data: [extract_training_readiness(d, data)],
     "respiration": lambda d, data: extract_respiration_readings(data),
     "spo2": lambda d, data: extract_spo2_readings(data),
@@ -34,6 +34,7 @@ EXTRACTORS: dict[str, Any] = {
     "intensity_minutes": lambda d, data: extract_intensity_minutes_readings(data),
     "floors": lambda d, data: extract_floors_readings(data),
     "blood_pressure": lambda d, data: extract_blood_pressure_readings(data),
+    "training_status": lambda d, data: [extract_training_status(d, data)],
 }
 
 # Endpoints to sync daily. body_battery is extracted from the stress response.
@@ -41,7 +42,7 @@ DAILY_SYNC_ENDPOINTS = [
     "daily_summary", "heart_rate", "stress",
     "sleep", "hrv", "training_readiness", "respiration", "spo2",
     "body_battery_events", "intensity_minutes", "floors",
-    "blood_pressure",
+    "blood_pressure", "training_status",
 ]
 
 
