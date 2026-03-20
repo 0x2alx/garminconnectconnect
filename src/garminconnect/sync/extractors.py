@@ -8,7 +8,7 @@ from garminconnect.models.monitoring import (
     BodyBatteryEvent, IntensityMinutesReading, FloorsReading, BloodPressureReading,
 )
 from garminconnect.models.sleep import SleepSummary, SleepStage
-from garminconnect.models.activities import Activity
+from garminconnect.models.activities import Activity, ActivityTrackpoint
 from garminconnect.models.training import HRVSummary, TrainingReadiness, RunningTolerance, PersonalRecord
 from garminconnect.models.workouts import Workout, Badge, TrainingPlan, ScheduledWorkout
 
@@ -313,6 +313,42 @@ def extract_activity(data: dict[str, Any]) -> Activity:
         training_effect_aerobic=data.get("aerobicTrainingEffect"),
         training_effect_anaerobic=data.get("anaerobicTrainingEffect"),
         vo2max=data.get("vO2MaxValue"),
+        # Running dynamics
+        avg_ground_contact_time=data.get("avgGroundContactTime"),
+        avg_ground_contact_balance=data.get("avgGroundContactBalance"),
+        avg_vertical_oscillation=data.get("avgVerticalOscillation"),
+        avg_stride_length=data.get("avgStrideLength"),
+        avg_vertical_ratio=data.get("avgVerticalRatio"),
+        # Performance
+        training_load=data.get("activityTrainingLoad"),
+        norm_power=data.get("normPower"),
+        max_power=data.get("maxPower"),
+        avg_respiration_rate=data.get("avgRespirationRate"),
+        # Pacing
+        moving_duration_seconds=data.get("movingDuration"),
+        fastest_split_1k_seconds=data.get("fastestSplit_1000"),
+        fastest_split_mile_seconds=data.get("fastestSplit_1609"),
+        fastest_split_5k_seconds=data.get("fastestSplit_5000"),
+        # HR zones
+        hr_zone_1_seconds=data.get("hrTimeInZone_1"),
+        hr_zone_2_seconds=data.get("hrTimeInZone_2"),
+        hr_zone_3_seconds=data.get("hrTimeInZone_3"),
+        hr_zone_4_seconds=data.get("hrTimeInZone_4"),
+        hr_zone_5_seconds=data.get("hrTimeInZone_5"),
+        # Metadata
+        location_name=data.get("locationName"),
+        lap_count=data.get("lapCount"),
+        steps=data.get("steps"),
+        water_estimated_ml=data.get("waterEstimated"),
+        body_battery_impact=data.get("differenceBodyBattery"),
+        training_effect_label=data.get("trainingEffectLabel"),
+        moderate_intensity_minutes=data.get("moderateIntensityMinutes"),
+        vigorous_intensity_minutes=data.get("vigorousIntensityMinutes"),
+        # GPS
+        start_latitude=data.get("startLatitude"),
+        start_longitude=data.get("startLongitude"),
+        end_latitude=data.get("endLatitude"),
+        end_longitude=data.get("endLongitude"),
     )
 
 
