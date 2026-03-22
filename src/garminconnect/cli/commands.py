@@ -131,7 +131,17 @@ def mcp() -> None:
         uvicorn.run(app, host=settings.mcp_host, port=settings.mcp_port)
     elif transport == "streamable-http":
         click.echo(f"Starting MCP server (HTTP) on {settings.mcp_host}:{settings.mcp_port}...")
-        server.run(transport="streamable-http", host=settings.mcp_host, port=settings.mcp_port)
+        if settings.mcp_api_key:
+            click.echo("Bearer token authentication enabled.")
+        else:
+            click.echo("WARNING: No MCP_API_KEY set — authentication disabled.")
+        import uvicorn
+        from starlette.middleware import Middleware
+        middleware = []
+        if settings.mcp_api_key:
+            middleware.append(Middleware(BearerAuthMiddleware, api_key=settings.mcp_api_key))
+        app = server.http_app(transport="streamable-http", middleware=middleware)
+        uvicorn.run(app, host=settings.mcp_host, port=settings.mcp_port)
     else:
         click.echo("Starting MCP server (stdio)...")
         server.run(transport="stdio")

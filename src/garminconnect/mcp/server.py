@@ -55,7 +55,7 @@ def create_mcp_server(postgres_url: str, api_key: str = "") -> FastMCP:
         postgres_url = postgres_url.replace("postgresql://", "postgresql+psycopg://", 1)
     engine = create_engine(postgres_url, pool_pre_ping=True)
     ro_engine = create_engine(postgres_url, pool_pre_ping=True,
-                              execution_options={"isolation_level": "AUTOCOMMIT"})
+                              execution_options={"postgresql_readonly": True})
 
     @mcp.tool()
     def list_tables() -> dict[str, Any]:
@@ -137,7 +137,6 @@ def create_mcp_server(postgres_url: str, api_key: str = "") -> FastMCP:
             return [{"error": "Write operations (INSERT/UPDATE/DELETE/DROP/etc.) are not allowed"}]
         with ro_engine.connect() as conn:
             try:
-                conn.execute(text("BEGIN READ ONLY"))
                 result = conn.execute(text(query))
                 rows = result.fetchmany(500)
                 return [dict(row._mapping) for row in rows]
