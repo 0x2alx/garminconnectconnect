@@ -7,12 +7,6 @@ from garminconnect.config import settings
 from garminconnect.models.base import Base
 
 logger = structlog.get_logger()
-import garminconnect.models.daily
-import garminconnect.models.monitoring
-import garminconnect.models.sleep
-import garminconnect.models.activities
-import garminconnect.models.training
-import garminconnect.models.sync_status
 
 HYPERTABLES = [
     ("heart_rate", "timestamp"),

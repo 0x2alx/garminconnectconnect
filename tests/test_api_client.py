@@ -17,7 +17,7 @@ def test_fetch_stress_no_user_id_needed():
     mock_auth = MagicMock()
     mock_auth.connectapi.return_value = {"stressData": []}
     client = GarminAPIClient(auth=mock_auth, user_id="test_user")
-    result = client.fetch("stress", date=date(2026, 3, 17))
+    client.fetch("stress", date=date(2026, 3, 17))
     call_url = mock_auth.connectapi.call_args[0][0]
     assert "test_user" not in call_url
 

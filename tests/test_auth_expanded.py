@@ -1,5 +1,5 @@
 """Task 4.1: Tests for ensure_authenticated and get_display_name."""
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import pytest
 from garminconnect.auth.client import GarminAuth
 

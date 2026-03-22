@@ -1,5 +1,5 @@
-from datetime import date, datetime, timezone
-from unittest.mock import MagicMock, patch
+from datetime import date
+from unittest.mock import MagicMock
 from garminconnect.db.repository import HealthRepository
 from garminconnect.models.daily import DailySummary
 

@@ -1,6 +1,6 @@
 """Task 4.2: Expanded repository tests."""
-from datetime import date, datetime, timezone
-from unittest.mock import MagicMock, patch, PropertyMock
+from datetime import date
+from unittest.mock import MagicMock
 from garminconnect.db.repository import HealthRepository
 from garminconnect.models.daily import DailySummary
 

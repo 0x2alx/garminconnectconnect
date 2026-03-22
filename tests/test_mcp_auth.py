@@ -1,7 +1,6 @@
 """Tests for MCP server bearer token authentication."""
 from __future__ import annotations
 
-import pytest
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.routing import Route

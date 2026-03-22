@@ -4,7 +4,6 @@ from datetime import date, timedelta
 from typing import Any
 from fastmcp import FastMCP
 from sqlalchemy import create_engine, text
-from starlette.middleware import Middleware
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 from garminconnect.mcp.tools import QUERY_TEMPLATES, get_table_list

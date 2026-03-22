@@ -1,7 +1,6 @@
 """Task 5.2: Tests for MCP tools with mocked DB."""
 import asyncio
 from unittest.mock import MagicMock
-import pytest
 from garminconnect.mcp.server import create_mcp_server
 from garminconnect.mcp.tools import QUERY_TEMPLATES, get_table_list
 

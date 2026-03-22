@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, String, Integer
+from sqlalchemy import Date, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from garminconnect.models.base import Base

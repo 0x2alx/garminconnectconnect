@@ -1,6 +1,4 @@
 """Tests for config.py — URL encoding, validation."""
-import os
-from unittest.mock import patch
 import pytest
 from garminconnect.config import Settings
 

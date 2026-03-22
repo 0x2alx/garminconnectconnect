@@ -1,6 +1,6 @@
 """Task 4.3: Expanded pipeline tests."""
 from datetime import date
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
 from garminconnect.sync.pipeline import SyncPipeline
 
 
