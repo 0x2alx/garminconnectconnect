@@ -14,6 +14,7 @@ from garminconnect.models.training import (
     PersonalRecord, EnduranceScore, HillScore, RacePrediction,
 )
 from garminconnect.models.workouts import Workout, Badge, TrainingPlan, ScheduledWorkout
+from garminconnect.models.biometrics import LactateThreshold, CyclingFTP
 
 
 def _ts_to_dt(epoch_ms: int) -> datetime:
@@ -754,6 +755,32 @@ def extract_training_status(target_date: date, data: dict[str, Any]) -> Training
         vo2max_running=generic.get("vo2MaxPreciseValue"),
         vo2max_cycling=(cycling or {}).get("vo2MaxPreciseValue"),
         fitness_age=generic.get("fitnessAge"),
+    )
+
+
+def extract_lactate_threshold(data: list[dict[str, Any]]) -> list[LactateThreshold]:
+    results = []
+    for item in data:
+        cal_date = item.get("calendarDate")
+        if not cal_date:
+            continue
+        results.append(LactateThreshold(
+            date=date.fromisoformat(cal_date),
+            sport=item.get("sport", "DEFAULT"),
+            speed=item.get("speed"),
+            heart_rate=item.get("hearRate"),  # Garmin typo: "hearRate" not "heartRate"
+        ))
+    return results
+
+
+def extract_cycling_ftp(data: dict[str, Any]) -> CyclingFTP | None:
+    cal_date = data.get("calendarDate")
+    if not cal_date:
+        return None
+    return CyclingFTP(
+        date=date.fromisoformat(cal_date),
+        ftp=data.get("functionalThresholdPower"),
+        source=data.get("biometricSourceType"),
     )
 
 

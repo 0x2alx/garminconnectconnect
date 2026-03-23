@@ -17,6 +17,7 @@ from garminconnect.sync.extractors import (
     extract_training_plan, extract_training_readiness, extract_training_status, extract_workouts,
     extract_scheduled_workouts, extract_trackpoints,
     extract_endurance_score, extract_hill_score, extract_race_predictions,
+    extract_lactate_threshold, extract_cycling_ftp,
 )
 
 logger = structlog.get_logger()
@@ -326,4 +327,32 @@ class SyncPipeline:
                 return True
         except Exception as e:
             logger.error("race_predictions_sync_failed", error=str(e))
+        return False
+
+    def sync_lactate_threshold(self) -> int:
+        try:
+            raw_data = self._fetch_with_retry("lactate_threshold")
+            if raw_data:
+                self.repo.store_raw("lactate_threshold", date.today(), raw_data)
+                entries = extract_lactate_threshold(raw_data)
+                if entries:
+                    self.repo.upsert_many(entries)
+                    logger.info("synced_lactate_threshold", count=len(entries))
+                    return len(entries)
+        except Exception as e:
+            logger.error("lactate_threshold_sync_failed", error=str(e))
+        return 0
+
+    def sync_cycling_ftp(self) -> bool:
+        try:
+            raw_data = self._fetch_with_retry("cycling_ftp")
+            if raw_data:
+                self.repo.store_raw("cycling_ftp", date.today(), raw_data)
+                ftp = extract_cycling_ftp(raw_data)
+                if ftp:
+                    self.repo.upsert(ftp)
+                    logger.info("synced_cycling_ftp")
+                    return True
+        except Exception as e:
+            logger.error("cycling_ftp_sync_failed", error=str(e))
         return False

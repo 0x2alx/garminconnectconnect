@@ -68,6 +68,8 @@ ENDPOINTS: list[Endpoint] = [
     Endpoint("badges", "/badge-service/badge/earned", EndpointCategory.GAMIFICATION),
     Endpoint("training_plan", "/trainingplan-service/trainingplan", EndpointCategory.WORKOUT),
     Endpoint("calendar", "/calendar-service/year/{year}/month/{month}", EndpointCategory.WORKOUT),
+    Endpoint("lactate_threshold", "/biometric-service/biometric/latestLactateThreshold", EndpointCategory.TRAINING),
+    Endpoint("cycling_ftp", "/biometric-service/biometric/latestFunctionalThresholdPower/CYCLING", EndpointCategory.TRAINING),
 ]
 
 ENDPOINTS_BY_NAME: dict[str, Endpoint] = {ep.name: ep for ep in ENDPOINTS}

@@ -7,6 +7,7 @@ from garminconnect.sync.extractors import (
     extract_stress_readings, extract_sleep_summary, extract_activity,
     extract_trackpoints, extract_endurance_score, extract_hill_score,
     extract_race_predictions, extract_training_status, extract_hrv_readings,
+    extract_lactate_threshold, extract_cycling_ftp,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -140,3 +141,20 @@ def test_extract_hrv_readings():
     readings = extract_hrv_readings(data)
     assert len(readings) == 2
     assert readings[0].hrv_value == 65
+
+
+def test_extract_lactate_threshold():
+    data = json.loads((FIXTURES / "lactate_threshold.json").read_text())
+    results = extract_lactate_threshold(data)
+    assert len(results) == 2
+    assert results[0].heart_rate == 171
+    assert results[0].speed == pytest.approx(0.306, abs=0.001)
+    assert results[0].sport == "DEFAULT"
+
+
+def test_extract_cycling_ftp():
+    data = json.loads((FIXTURES / "cycling_ftp.json").read_text())
+    result = extract_cycling_ftp(data)
+    assert result is not None
+    assert result.ftp == 305
+    assert result.source == "DEVICE"

@@ -248,6 +248,18 @@ QUERY_TEMPLATES = {
         WHERE date BETWEEN :start AND :end
         ORDER BY date DESC
     """,
+    "lactate_threshold_trend": """
+        SELECT date, sport, speed, heart_rate
+        FROM lactate_threshold
+        ORDER BY date DESC
+        LIMIT :limit
+    """,
+    "cycling_ftp_trend": """
+        SELECT date, ftp, source
+        FROM cycling_ftp
+        ORDER BY date DESC
+        LIMIT :limit
+    """,
 }
 
 
@@ -261,4 +273,5 @@ def get_table_list() -> list[str]:
         "race_predictions", "running_tolerance", "personal_records",
         "workouts", "badges", "training_plans", "scheduled_workouts",
         "endurance_score", "hill_score", "hrv_readings", "sync_status",
+        "lactate_threshold", "cycling_ftp",
     ]
