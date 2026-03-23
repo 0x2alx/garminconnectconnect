@@ -15,7 +15,7 @@ def upgrade():
         FROM heart_rate GROUP BY day
         WITH NO DATA
     """)
-    op.execute("SELECT add_continuous_aggregate_policy('daily_hr_summary', '2 days', '1 hour', '1 hour')")
+    op.execute("SELECT add_continuous_aggregate_policy('daily_hr_summary', '3 days', '1 day', '1 hour')")
 
     op.execute("""
         CREATE MATERIALIZED VIEW daily_stress_summary
@@ -26,7 +26,7 @@ def upgrade():
         FROM stress GROUP BY day
         WITH NO DATA
     """)
-    op.execute("SELECT add_continuous_aggregate_policy('daily_stress_summary', '2 days', '1 hour', '1 hour')")
+    op.execute("SELECT add_continuous_aggregate_policy('daily_stress_summary', '3 days', '1 day', '1 hour')")
 
 
 def downgrade():
