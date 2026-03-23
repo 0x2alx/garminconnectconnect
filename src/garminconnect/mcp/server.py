@@ -48,7 +48,7 @@ _WRITE_KEYWORDS = re.compile(
 )
 
 
-def create_mcp_server(postgres_url: str, api_key: str = "") -> FastMCP:
+def create_mcp_server(postgres_url: str, api_key: str = "", garth_token_dir: str = "") -> FastMCP:
     mcp = FastMCP("Garmin Health Data")
     mcp._auth_api_key = api_key
     if postgres_url.startswith("postgresql://"):
@@ -360,5 +360,70 @@ def create_mcp_server(postgres_url: str, api_key: str = "") -> FastMCP:
             "2. Compare pace, HR efficiency (pace/HR), running dynamics, training load.\n"
             "3. Highlight improvements and areas to work on."
         )
+
+    # --- Workout write-back tools (require garth_token_dir) ---
+
+    import garth as _garth
+    from garminconnect.mcp.workout_builder import build_workout_payload
+
+    _WRITE = ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True)
+    _DELETE = ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True)
+
+    def _garth_write(path: str, method: str = "POST", json_data: dict | None = None) -> Any:
+        """Call Garmin API with write capability via garth."""
+        if not garth_token_dir:
+            raise ValueError("Workout write-back not configured (no garth_token_dir)")
+        _garth.resume(garth_token_dir)
+        return _garth.connectapi(path, method=method, json=json_data)
+
+    @mcp.tool(annotations=_WRITE)
+    def create_workout(name: str, sport: str = "running", steps_json: str = "[]") -> dict[str, Any]:
+        """Create a workout on Garmin Connect.
+
+        Args:
+            name: Workout name.
+            sport: Sport type (running, cycling, swimming, strength).
+            steps_json: JSON array of step objects. Each step: {"type": "warmup|interval|cooldown|recovery|rest",
+                        "duration_seconds": int, "distance_meters": float, "target_pace_min": [slow, fast],
+                        "description": str}
+        """
+        if not garth_token_dir:
+            return {"error": "Workout write-back not configured (no garth_token_dir)"}
+        steps = _json.loads(steps_json)
+        payload = build_workout_payload(name, sport, steps)
+        result = _garth_write("/workout-service/workout", method="POST", json_data=payload)
+        return {"success": True, "workout": result}
+
+    @mcp.tool(annotations=_WRITE)
+    def schedule_workout(workout_id: str, target_date: str = "") -> dict[str, Any]:
+        """Schedule a workout on a specific date.
+
+        Args:
+            workout_id: Garmin workout ID.
+            target_date: Date in YYYY-MM-DD format. Defaults to tomorrow.
+        """
+        if not garth_token_dir:
+            return {"error": "Workout write-back not configured"}
+        if not target_date:
+            from datetime import date as _date, timedelta as _td
+            target_date = (_date.today() + _td(days=1)).isoformat()
+        result = _garth_write(
+            f"/workout-service/schedule/{workout_id}",
+            method="POST",
+            json_data={"date": target_date},
+        )
+        return {"success": True, "scheduled": result}
+
+    @mcp.tool(annotations=_DELETE)
+    def delete_workout(workout_id: str) -> dict[str, Any]:
+        """Delete a workout from Garmin Connect. This is irreversible.
+
+        Args:
+            workout_id: Garmin workout ID to delete.
+        """
+        if not garth_token_dir:
+            return {"error": "Workout write-back not configured"}
+        _garth_write(f"/workout-service/workout/{workout_id}", method="DELETE")
+        return {"success": True, "deleted": workout_id}
 
     return mcp

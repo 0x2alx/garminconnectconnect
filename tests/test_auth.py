@@ -22,5 +22,5 @@ def test_auth_connectapi_delegates_to_garth():
         mock_garth.connectapi.return_value = {"steps": 5000}
         auth = GarminAuth()
         result = auth.connectapi("/endpoint")
-        mock_garth.connectapi.assert_called_once_with("/endpoint", params=None)
+        mock_garth.connectapi.assert_called_once_with("/endpoint", params=None, method="GET", json=None)
         assert result == {"steps": 5000}

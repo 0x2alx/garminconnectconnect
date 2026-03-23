@@ -24,8 +24,9 @@ class GarminAuth:
         garth.resume(self.token_dir)
         logger.info("resumed_session", token_dir=self.token_dir)
 
-    def connectapi(self, endpoint: str, params: dict[str, Any] | None = None) -> Any:
-        return garth.connectapi(endpoint, params=params)
+    def connectapi(self, endpoint: str, params: dict[str, Any] | None = None,
+                   method: str = "GET", json: dict[str, Any] | None = None) -> Any:
+        return garth.connectapi(endpoint, params=params, method=method, json=json)
 
     def get_display_name(self) -> str:
         """Get the Garmin Connect display name / profile ID for API URLs.

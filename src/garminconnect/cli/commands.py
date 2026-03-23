@@ -113,6 +113,7 @@ def mcp() -> None:
     server = create_mcp_server(
         postgres_url=settings.postgres_url,
         api_key=settings.mcp_api_key,
+        garth_token_dir=settings.garmin_token_dir,
     )
     transport = settings.mcp_transport
     if transport == "sse":
