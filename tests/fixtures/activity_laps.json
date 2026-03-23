@@ -1,0 +1,42 @@
+{
+  "activityId": "22266768958",
+  "lapDTOs": [
+    {
+      "startTimeGMT": "2026-03-22T22:27:26.0",
+      "distance": 1000.0,
+      "duration": 360.5,
+      "movingDuration": 355.0,
+      "averageSpeed": 2.77,
+      "averageHR": 148,
+      "maxHR": 155,
+      "calories": 95,
+      "averageRunCadence": 82.0,
+      "averagePower": 280,
+      "groundContactTime": 315.0,
+      "groundContactBalanceLeft": 51.2,
+      "strideLength": 88.5,
+      "verticalOscillation": 7.1,
+      "verticalRatio": 7.8,
+      "elevationGain": 5.0,
+      "elevationLoss": 3.0,
+      "startLatitude": 26.123,
+      "startLongitude": -80.281,
+      "lapIndex": 0,
+      "intensityType": "ACTIVE"
+    },
+    {
+      "startTimeGMT": "2026-03-22T22:33:26.0",
+      "distance": 1000.0,
+      "duration": 355.0,
+      "movingDuration": 350.0,
+      "averageSpeed": 2.82,
+      "averageHR": 152,
+      "maxHR": 158,
+      "calories": 98,
+      "averageRunCadence": 83.0,
+      "averagePower": 290,
+      "lapIndex": 1,
+      "intensityType": "ACTIVE"
+    }
+  ]
+}

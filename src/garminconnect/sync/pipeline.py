@@ -18,7 +18,7 @@ from garminconnect.sync.extractors import (
     extract_scheduled_workouts, extract_trackpoints,
     extract_endurance_score, extract_hill_score, extract_race_predictions,
     extract_lactate_threshold, extract_cycling_ftp,
-    extract_hydration, extract_gear,
+    extract_hydration, extract_gear, extract_activity_laps,
 )
 
 logger = structlog.get_logger()
@@ -167,6 +167,10 @@ class SyncPipeline:
                         self.repo.upsert_many(trackpoints)
                         count += len(trackpoints)
                         logger.info("synced_trackpoints", activity_id=activity_id, count=len(trackpoints))
+                    laps = extract_activity_laps(activity_id, raw_data)
+                    if laps:
+                        self.repo.upsert_many(laps)
+                        logger.info("synced_activity_laps", activity_id=activity_id, count=len(laps))
             except Exception as e:
                 logger.error("trackpoint_sync_failed", activity_id=activity_id, error=str(e))
         return count

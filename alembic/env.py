@@ -20,6 +20,7 @@ import garminconnect.models.activities
 import garminconnect.models.training
 import garminconnect.models.workouts
 import garminconnect.models.sync_status
+import garminconnect.models.activity_laps
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

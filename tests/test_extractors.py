@@ -8,7 +8,7 @@ from garminconnect.sync.extractors import (
     extract_trackpoints, extract_endurance_score, extract_hill_score,
     extract_race_predictions, extract_training_status, extract_hrv_readings,
     extract_lactate_threshold, extract_cycling_ftp,
-    extract_hydration, extract_gear,
+    extract_hydration, extract_gear, extract_activity_laps,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -176,3 +176,36 @@ def test_extract_gear():
     assert results[0].display_name == "Asics Novablast 5"
     assert results[0].gear_type == "Shoes"
     assert results[0].running_meters == 643000.0
+
+
+def test_extract_activity_laps():
+    data = json.loads((FIXTURES / "activity_laps.json").read_text())
+    laps = extract_activity_laps("22266768958", data)
+    assert len(laps) == 2
+    lap = laps[0]
+    assert lap.activity_id == "22266768958"
+    assert lap.lap_index == 0
+    assert lap.avg_heart_rate == 148
+    assert lap.max_heart_rate == 155
+    assert lap.calories == 95
+    assert lap.avg_speed == pytest.approx(2.77, abs=0.01)
+    assert lap.avg_cadence == pytest.approx(82.0, abs=0.1)
+    assert lap.ground_contact_time == pytest.approx(315.0, abs=0.1)
+    assert lap.ground_contact_balance == pytest.approx(51.2, abs=0.01)
+    assert lap.stride_length == pytest.approx(88.5, abs=0.1)
+    assert lap.start_latitude == pytest.approx(26.123, abs=0.001)
+    assert lap.intensity_type == "ACTIVE"
+
+
+def test_extract_activity_laps_sparse():
+    data = json.loads((FIXTURES / "activity_laps.json").read_text())
+    laps = extract_activity_laps("22266768958", data)
+    lap = laps[1]
+    assert lap.lap_index == 1
+    assert lap.ground_contact_time is None
+    assert lap.stride_length is None
+    assert lap.start_latitude is None
+
+
+def test_extract_activity_laps_empty():
+    assert extract_activity_laps("99", {}) == []

@@ -16,6 +16,7 @@ from garminconnect.models.training import (
 from garminconnect.models.workouts import Workout, Badge, TrainingPlan, ScheduledWorkout
 from garminconnect.models.biometrics import LactateThreshold, CyclingFTP
 from garminconnect.models.gear import Gear
+from garminconnect.models.activity_laps import ActivityLap
 
 
 def _ts_to_dt(epoch_ms: int) -> datetime:
@@ -833,3 +834,33 @@ def extract_gear(data: list[dict[str, Any]]) -> list[Gear]:
             running_meters=item.get("runningMeters"),
         ))
     return results
+
+
+def extract_activity_laps(activity_id: str, data: dict[str, Any]) -> list[ActivityLap]:
+    laps = []
+    for lap in data.get("lapDTOs", []):
+        laps.append(ActivityLap(
+            activity_id=activity_id,
+            lap_index=lap.get("lapIndex", len(laps)),
+            start_time=_parse_garmin_timestamp(lap.get("startTimeGMT")),
+            distance=lap.get("distance"),
+            duration=lap.get("duration"),
+            moving_duration=lap.get("movingDuration"),
+            avg_speed=lap.get("averageSpeed"),
+            avg_heart_rate=lap.get("averageHR"),
+            max_heart_rate=lap.get("maxHR"),
+            calories=lap.get("calories"),
+            avg_cadence=lap.get("averageRunCadence"),
+            avg_power=lap.get("averagePower"),
+            elevation_gain=lap.get("elevationGain"),
+            elevation_loss=lap.get("elevationLoss"),
+            ground_contact_time=lap.get("groundContactTime"),
+            ground_contact_balance=lap.get("groundContactBalanceLeft"),
+            stride_length=lap.get("strideLength"),
+            vertical_oscillation=lap.get("verticalOscillation"),
+            vertical_ratio=lap.get("verticalRatio"),
+            start_latitude=lap.get("startLatitude"),
+            start_longitude=lap.get("startLongitude"),
+            intensity_type=lap.get("intensityType"),
+        ))
+    return laps
