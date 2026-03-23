@@ -3,6 +3,7 @@ import re
 from datetime import date, timedelta
 from typing import Any
 from fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 from sqlalchemy import create_engine, text
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -55,8 +56,9 @@ def create_mcp_server(postgres_url: str, api_key: str = "") -> FastMCP:
     engine = create_engine(postgres_url, pool_pre_ping=True)
     ro_engine = create_engine(postgres_url, pool_pre_ping=True,
                               execution_options={"postgresql_readonly": True})
+    _RO = ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)
 
-    @mcp.tool()
+    @mcp.tool(annotations=_RO)
     def list_tables() -> dict[str, Any]:
         """List all available health data tables and their row counts."""
         _valid_tables = set(get_table_list())
@@ -79,7 +81,7 @@ def create_mcp_server(postgres_url: str, api_key: str = "") -> FastMCP:
                     result[table] = "table not found"
         return result
 
-    @mcp.tool()
+    @mcp.tool(annotations=_RO)
     def get_table_schema(table_name: str) -> dict[str, Any]:
         """Get column names and types for a specific table."""
         if table_name not in get_table_list():
@@ -91,7 +93,7 @@ def create_mcp_server(postgres_url: str, api_key: str = "") -> FastMCP:
             ).fetchall()
             return {row[0]: row[1] for row in rows}
 
-    @mcp.tool()
+    @mcp.tool(annotations=_RO)
     def query_health_data(query_name: str, start_date: str = "", end_date: str = "", period: str = "", limit: int = 30) -> list[dict]:
         """Run a pre-built health data query.
 
@@ -126,7 +128,7 @@ def create_mcp_server(postgres_url: str, api_key: str = "") -> FastMCP:
             result = conn.execute(text(template), {"start": start.isoformat(), "end": end.isoformat(), "limit": limit})
             return [dict(row._mapping) for row in result.fetchall()]
 
-    @mcp.tool()
+    @mcp.tool(annotations=_RO)
     def execute_sql(query: str) -> list[dict]:
         """Execute a read-only SQL query. Only SELECT statements allowed."""
         normalized = query.strip().upper()
@@ -142,7 +144,7 @@ def create_mcp_server(postgres_url: str, api_key: str = "") -> FastMCP:
             except Exception as e:
                 return [{"error": f"Query failed: {e}"}]
 
-    @mcp.tool()
+    @mcp.tool(annotations=_RO)
     def get_health_summary(period: str = "week") -> dict[str, Any]:
         """Get a comprehensive health summary for a Garmin-aligned period.
 
@@ -182,7 +184,7 @@ def create_mcp_server(postgres_url: str, api_key: str = "") -> FastMCP:
                 summary["activities"] = dict(row._mapping)
         return summary
 
-    @mcp.tool()
+    @mcp.tool(annotations=_RO)
     def get_sync_status() -> list[dict]:
         """Check the sync status - when was each metric last synced?"""
         with engine.connect() as conn:
