@@ -1,0 +1,14 @@
+[
+  {
+    "gearPk": 12345,
+    "uuid": "abc-123",
+    "gearMakeName": "Asics",
+    "gearModelName": "Novablast 5",
+    "gearTypeName": "Shoes",
+    "gearStatusName": "active",
+    "displayName": "Asics Novablast 5",
+    "dateBegin": "2025-06-01",
+    "maximumMeters": 800000.0,
+    "runningMeters": 643000.0
+  }
+]

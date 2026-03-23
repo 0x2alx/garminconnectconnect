@@ -266,6 +266,14 @@ QUERY_TEMPLATES = {
         WHERE date BETWEEN :start AND :end
         ORDER BY date DESC
     """,
+    "gear_list": """
+        SELECT gear_id, display_name, make, model, gear_type, status,
+               date_begin, running_meters/1000.0 AS running_km,
+               max_meters/1000.0 AS max_km
+        FROM gear
+        ORDER BY running_meters DESC
+        LIMIT :limit
+    """,
 }
 
 
@@ -279,5 +287,5 @@ def get_table_list() -> list[str]:
         "race_predictions", "running_tolerance", "personal_records",
         "workouts", "badges", "training_plans", "scheduled_workouts",
         "endurance_score", "hill_score", "hrv_readings", "sync_status",
-        "lactate_threshold", "cycling_ftp", "hydration",
+        "lactate_threshold", "cycling_ftp", "hydration", "gear",
     ]

@@ -15,6 +15,7 @@ from garminconnect.models.training import (
 )
 from garminconnect.models.workouts import Workout, Badge, TrainingPlan, ScheduledWorkout
 from garminconnect.models.biometrics import LactateThreshold, CyclingFTP
+from garminconnect.models.gear import Gear
 
 
 def _ts_to_dt(epoch_ms: int) -> datetime:
@@ -806,3 +807,29 @@ def extract_hrv_readings(data: dict[str, Any]) -> list[HRVReading]:
         if ts is not None and value is not None:
             readings.append(HRVReading(timestamp=ts, hrv_value=int(value)))
     return readings
+
+
+def extract_gear(data: list[dict[str, Any]]) -> list[Gear]:
+    results = []
+    for item in data:
+        gear_pk = item.get("gearPk") or item.get("uuid")
+        if not gear_pk:
+            continue
+        date_begin = None
+        if item.get("dateBegin"):
+            try:
+                date_begin = date.fromisoformat(item["dateBegin"])
+            except (ValueError, TypeError):
+                pass
+        results.append(Gear(
+            gear_id=str(gear_pk),
+            make=item.get("gearMakeName"),
+            model=item.get("gearModelName"),
+            gear_type=item.get("gearTypeName"),
+            status=item.get("gearStatusName"),
+            display_name=item.get("displayName"),
+            date_begin=date_begin,
+            max_meters=item.get("maximumMeters"),
+            running_meters=item.get("runningMeters"),
+        ))
+    return results

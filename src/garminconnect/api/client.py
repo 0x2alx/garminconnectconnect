@@ -16,13 +16,20 @@ class GarminAPIClient:
         self.user_id = user_id
         self._last_request_time: float = 0
 
+    def get_profile_id(self) -> str:
+        """Get numeric profile ID for endpoints that need userProfilePk."""
+        if not hasattr(self, '_profile_id') or not self._profile_id:
+            profile = self.auth.connectapi("/userprofile-service/socialProfile")
+            self._profile_id = str(profile.get("profileId", ""))
+        return self._profile_id
+
     def _rate_limit(self) -> None:
         elapsed = time.monotonic() - self._last_request_time
         if elapsed < MIN_REQUEST_INTERVAL:
             time.sleep(MIN_REQUEST_INTERVAL - elapsed)
         self._last_request_time = time.monotonic()
 
-    def _build_url(self, endpoint: Endpoint, date: date | None = None, start: date | None = None, end: date | None = None, activity_id: str | None = None, device_id: str | None = None, year: int | None = None, month: int | None = None) -> str:
+    def _build_url(self, endpoint: Endpoint, date: date | None = None, start: date | None = None, end: date | None = None, activity_id: str | None = None, device_id: str | None = None, year: int | None = None, month: int | None = None, profile_id: str | None = None) -> str:
         url = endpoint.url_template
         replacements: dict[str, str] = {}
         if date:
@@ -43,6 +50,10 @@ class GarminAPIClient:
             replacements["{year}"] = str(year)
         if month:
             replacements["{month}"] = str(month)
+        if "{profile_id}" in url:
+            if not profile_id:
+                profile_id = self.get_profile_id()
+            replacements["{profile_id}"] = profile_id
         for placeholder, value in replacements.items():
             url = url.replace(placeholder, value)
         return url

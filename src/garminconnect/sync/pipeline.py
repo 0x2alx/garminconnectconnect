@@ -18,7 +18,7 @@ from garminconnect.sync.extractors import (
     extract_scheduled_workouts, extract_trackpoints,
     extract_endurance_score, extract_hill_score, extract_race_predictions,
     extract_lactate_threshold, extract_cycling_ftp,
-    extract_hydration,
+    extract_hydration, extract_gear,
 )
 
 logger = structlog.get_logger()
@@ -370,3 +370,17 @@ class SyncPipeline:
         except Exception as e:
             logger.error("cycling_ftp_sync_failed", error=str(e))
         return False
+
+    def sync_gear(self) -> int:
+        try:
+            raw_data = self._fetch_with_retry("gear")
+            if raw_data:
+                self.repo.store_raw("gear", date.today(), raw_data)
+                items = extract_gear(raw_data)
+                if items:
+                    self.repo.upsert_many(items)
+                    logger.info("synced_gear", count=len(items))
+                    return len(items)
+        except Exception as e:
+            logger.error("gear_sync_failed", error=str(e))
+        return 0

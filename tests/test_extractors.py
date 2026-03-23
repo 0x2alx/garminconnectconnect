@@ -8,7 +8,7 @@ from garminconnect.sync.extractors import (
     extract_trackpoints, extract_endurance_score, extract_hill_score,
     extract_race_predictions, extract_training_status, extract_hrv_readings,
     extract_lactate_threshold, extract_cycling_ftp,
-    extract_hydration,
+    extract_hydration, extract_gear,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -167,3 +167,12 @@ def test_extract_hydration():
     assert result.intake_ml == 1200.0
     assert result.goal_ml == 5512.0
     assert result.sweat_loss_ml == 2673.0
+
+
+def test_extract_gear():
+    data = json.loads((FIXTURES / "gear.json").read_text())
+    results = extract_gear(data)
+    assert len(results) == 1
+    assert results[0].display_name == "Asics Novablast 5"
+    assert results[0].gear_type == "Shoes"
+    assert results[0].running_meters == 643000.0
