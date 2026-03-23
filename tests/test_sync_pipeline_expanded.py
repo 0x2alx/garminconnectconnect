@@ -124,26 +124,29 @@ class TestActivityPagination:
         mock_api = MagicMock()
         mock_repo = MagicMock()
         # Page 1: full page (2 items with limit=2), page 2: partial page (1 item)
-        # Then None for each activity_gps fetch (3 activities)
+        # Then for each activity: activity_gps + activity_weather (3 activities × 2)
         mock_api.fetch.side_effect = [
             [{"activityId": 1}, {"activityId": 2}],
             [{"activityId": 3}],
             None,  # activity_gps for id=1
+            None,  # activity_weather for id=1
             None,  # activity_gps for id=2
+            None,  # activity_weather for id=2
             None,  # activity_gps for id=3
+            None,  # activity_weather for id=3
         ]
         pipeline = SyncPipeline(api_client=mock_api, repository=mock_repo)
         ids = pipeline.sync_activities(limit=2)
         assert ids == ["1", "2", "3"]
-        # 2 activity list pages + 3 GPS fetches
-        assert mock_api.fetch.call_count == 5
+        # 2 activity list pages + 3 GPS + 3 weather fetches
+        assert mock_api.fetch.call_count == 8
 
     def test_stops_at_max_activities(self):
         mock_api = MagicMock()
         mock_repo = MagicMock()
         page = [{"activityId": i} for i in range(5)]
-        # Two full pages of activities + GPS calls for up to 10 activities
-        mock_api.fetch.side_effect = [page, page] + [None] * 10
+        # Two full pages of activities + GPS + weather calls for up to 10 activities
+        mock_api.fetch.side_effect = [page, page] + [None] * 20
         pipeline = SyncPipeline(api_client=mock_api, repository=mock_repo)
         ids = pipeline.sync_activities(limit=5, max_activities=10)
         assert len(ids) <= 10

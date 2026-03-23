@@ -74,6 +74,13 @@ class Activity(Base):
     end_latitude: Mapped[float | None] = mapped_column(Float, default=None)
     end_longitude: Mapped[float | None] = mapped_column(Float, default=None)
 
+    # Weather
+    weather_temp: Mapped[float | None] = mapped_column(Float, default=None)
+    weather_feels_like: Mapped[float | None] = mapped_column(Float, default=None)
+    weather_humidity: Mapped[int | None] = mapped_column(SmallInteger, default=None)
+    weather_wind_speed: Mapped[float | None] = mapped_column(Float, default=None)
+    weather_condition: Mapped[str | None] = mapped_column(String(50), default=None)
+
 
 class ActivityTrackpoint(Base):
     __tablename__ = "activity_trackpoints"

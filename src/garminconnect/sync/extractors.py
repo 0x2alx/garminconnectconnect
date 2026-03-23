@@ -864,3 +864,21 @@ def extract_activity_laps(activity_id: str, data: dict[str, Any]) -> list[Activi
             intensity_type=lap.get("intensityType"),
         ))
     return laps
+
+
+def extract_activity_weather(activity_id: str, data: dict[str, Any]) -> dict[str, Any] | None:
+    """Extract weather fields from the activity weather endpoint response.
+
+    Returns a dict of weather values (not a model) for targeted SQL UPDATE.
+    """
+    if not data or not data.get("temp"):
+        return None
+    weather_type = data.get("weatherTypeDTO", {})
+    return {
+        "activity_id": activity_id,
+        "weather_temp": data.get("temp"),
+        "weather_feels_like": data.get("apparentTemp"),
+        "weather_humidity": data.get("relativeHumidity"),
+        "weather_wind_speed": data.get("windSpeed"),
+        "weather_condition": weather_type.get("desc"),
+    }

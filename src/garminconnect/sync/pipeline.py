@@ -3,6 +3,7 @@ import logging
 from datetime import date, timedelta
 from typing import Any
 import structlog
+from sqlalchemy import text
 from tenacity import retry, stop_after_attempt, wait_exponential, before_sleep_log
 from garminconnect.api.client import GarminAPIClient
 from garminconnect.db.repository import HealthRepository
@@ -18,7 +19,7 @@ from garminconnect.sync.extractors import (
     extract_scheduled_workouts, extract_trackpoints,
     extract_endurance_score, extract_hill_score, extract_race_predictions,
     extract_lactate_threshold, extract_cycling_ftp,
-    extract_hydration, extract_gear, extract_activity_laps,
+    extract_hydration, extract_gear, extract_activity_laps, extract_activity_weather,
 )
 
 logger = structlog.get_logger()
@@ -171,6 +172,25 @@ class SyncPipeline:
                     if laps:
                         self.repo.upsert_many(laps)
                         logger.info("synced_activity_laps", activity_id=activity_id, count=len(laps))
+                try:
+                    weather_data = self._fetch_with_retry("activity_weather", activity_id=activity_id)
+                    if weather_data:
+                        self.repo.store_raw("activity_weather", date.today(), weather_data)
+                        weather = extract_activity_weather(activity_id, weather_data)
+                        if weather:
+                            session = self.repo._session_factory()
+                            session.execute(text(
+                                "UPDATE activities SET weather_temp=:weather_temp, "
+                                "weather_feels_like=:weather_feels_like, "
+                                "weather_humidity=:weather_humidity, "
+                                "weather_wind_speed=:weather_wind_speed, "
+                                "weather_condition=:weather_condition "
+                                "WHERE activity_id=:activity_id"
+                            ), weather)
+                            session.commit()
+                            logger.info("synced_activity_weather", activity_id=activity_id)
+                except Exception as e:
+                    logger.error("activity_weather_sync_failed", activity_id=activity_id, error=str(e))
             except Exception as e:
                 logger.error("trackpoint_sync_failed", activity_id=activity_id, error=str(e))
         return count

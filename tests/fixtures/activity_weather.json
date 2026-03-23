@@ -1,0 +1,10 @@
+{
+  "temp": 24.0,
+  "apparentTemp": 26.5,
+  "relativeHumidity": 72,
+  "windSpeed": 12.3,
+  "weatherTypeDTO": {
+    "weatherTypePk": 3,
+    "desc": "Partly Cloudy"
+  }
+}

@@ -8,7 +8,7 @@ from garminconnect.sync.extractors import (
     extract_trackpoints, extract_endurance_score, extract_hill_score,
     extract_race_predictions, extract_training_status, extract_hrv_readings,
     extract_lactate_threshold, extract_cycling_ftp,
-    extract_hydration, extract_gear, extract_activity_laps,
+    extract_hydration, extract_gear, extract_activity_laps, extract_activity_weather,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -209,3 +209,23 @@ def test_extract_activity_laps_sparse():
 
 def test_extract_activity_laps_empty():
     assert extract_activity_laps("99", {}) == []
+
+
+def test_extract_activity_weather():
+    data = json.loads((FIXTURES / "activity_weather.json").read_text())
+    result = extract_activity_weather("12345", data)
+    assert result is not None
+    assert result["activity_id"] == "12345"
+    assert result["weather_temp"] == pytest.approx(24.0, abs=0.1)
+    assert result["weather_feels_like"] == pytest.approx(26.5, abs=0.1)
+    assert result["weather_humidity"] == 72
+    assert result["weather_wind_speed"] == pytest.approx(12.3, abs=0.1)
+    assert result["weather_condition"] == "Partly Cloudy"
+
+
+def test_extract_activity_weather_empty():
+    assert extract_activity_weather("99", {}) is None
+
+
+def test_extract_activity_weather_no_temp():
+    assert extract_activity_weather("99", {"relativeHumidity": 50}) is None
