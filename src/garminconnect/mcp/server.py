@@ -196,6 +196,78 @@ def create_mcp_server(postgres_url: str, api_key: str = "") -> FastMCP:
             )).fetchall()
             return [dict(zip(["metric", "last_date", "completed", "failed"], row)) for row in rows]
 
+    @mcp.tool(annotations=_RO)
+    def compare_activities(activity_ids: str) -> dict[str, Any]:
+        """WHEN TO USE: Compare 2-5 activities side by side. Pass comma-separated activity IDs.
+
+        Args:
+            activity_ids: Comma-separated activity IDs (e.g., "123,456,789"). Min 2, max 5.
+        """
+        ids = [aid.strip() for aid in activity_ids.split(",") if aid.strip()]
+        if len(ids) < 2:
+            return {"error": "Provide at least 2 activity IDs (comma-separated)"}
+        if len(ids) > 5:
+            return {"error": "Provide at most 5 activity IDs"}
+        placeholders = ", ".join(f":id{i}" for i in range(len(ids)))
+        params = {f"id{i}": aid for i, aid in enumerate(ids)}
+        with engine.connect() as conn:
+            rows = conn.execute(text(
+                f"SELECT activity_id, name, activity_type, start_time, "
+                f"duration_seconds, distance_meters, avg_heart_rate, max_heart_rate, "
+                f"avg_speed, calories, elevation_gain, avg_cadence, "
+                f"training_effect_aerobic, training_load, vo2max, "
+                f"avg_ground_contact_time, avg_stride_length "
+                f"FROM activities WHERE activity_id IN ({placeholders}) "
+                f"ORDER BY start_time"
+            ), params).fetchall()
+            if not rows:
+                return {"error": "No activities found for the given IDs"}
+            activities = [dict(row._mapping) for row in rows]
+            insights = []
+            hrs = [a["avg_heart_rate"] for a in activities if a.get("avg_heart_rate")]
+            if hrs:
+                insights.append(f"HR range: {min(hrs)}-{max(hrs)} bpm")
+            dists = [a["distance_meters"] for a in activities if a.get("distance_meters")]
+            if dists:
+                insights.append(f"Distance range: {min(dists)/1000:.1f}-{max(dists)/1000:.1f} km")
+            return {"activities": activities, "insights": insights, "count": len(activities)}
+
+    @mcp.tool(annotations=_RO)
+    def find_similar_activities(activity_id: str, tolerance_pct: int = 20, limit: int = 10) -> list[dict]:
+        """WHEN TO USE: Find activities similar to a reference activity by type, distance, and duration.
+
+        Args:
+            activity_id: Reference activity ID.
+            tolerance_pct: How similar (default 20 = within 20% of distance/duration).
+            limit: Max results (default 10).
+        """
+        with engine.connect() as conn:
+            ref = conn.execute(text(
+                "SELECT activity_type, distance_meters, duration_seconds "
+                "FROM activities WHERE activity_id = :id"
+            ), {"id": activity_id}).fetchone()
+            if not ref:
+                return [{"error": f"Activity {activity_id} not found"}]
+            ref_map = dict(ref._mapping)
+            factor = tolerance_pct / 100.0
+            dist = ref_map.get("distance_meters") or 0
+            dur = ref_map.get("duration_seconds") or 0
+            rows = conn.execute(text(
+                "SELECT activity_id, name, start_time, distance_meters, duration_seconds, "
+                "avg_heart_rate, avg_speed, calories "
+                "FROM activities "
+                "WHERE activity_type = :atype AND activity_id != :id "
+                "AND distance_meters BETWEEN :dlo AND :dhi "
+                "AND duration_seconds BETWEEN :tlo AND :thi "
+                "ORDER BY start_time DESC LIMIT :limit"
+            ), {
+                "atype": ref_map["activity_type"], "id": activity_id,
+                "dlo": dist * (1 - factor), "dhi": dist * (1 + factor),
+                "tlo": dur * (1 - factor), "thi": dur * (1 + factor),
+                "limit": limit,
+            }).fetchall()
+            return [dict(row._mapping) for row in rows]
+
     import json as _json
 
     @mcp.resource("garmin://instructions", description="How to query Garmin health data")
