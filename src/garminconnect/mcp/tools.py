@@ -274,6 +274,14 @@ QUERY_TEMPLATES = {
         ORDER BY running_meters DESC
         LIMIT :limit
     """,
+    "daily_hr_rollup": """
+        SELECT day, min_hr, max_hr, avg_hr, readings
+        FROM daily_hr_summary WHERE day BETWEEN :start AND :end ORDER BY day DESC
+    """,
+    "daily_stress_rollup": """
+        SELECT day, avg_stress, max_stress, readings
+        FROM daily_stress_summary WHERE day BETWEEN :start AND :end ORDER BY day DESC
+    """,
 }
 
 
@@ -288,4 +296,5 @@ def get_table_list() -> list[str]:
         "workouts", "badges", "training_plans", "scheduled_workouts",
         "endurance_score", "hill_score", "hrv_readings", "sync_status",
         "lactate_threshold", "cycling_ftp", "hydration", "gear",
+        "activity_laps",
     ]

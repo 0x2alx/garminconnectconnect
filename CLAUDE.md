@@ -49,11 +49,11 @@ docker compose run --rm garmin-cli status
 
 - `src/garminconnect/config.py` — Pydantic Settings class, all config via env vars (30+), see `.env.example`
 - `src/garminconnect/auth/` — garth-based Garmin Connect authentication, token auto-refresh
-- `src/garminconnect/api/` — API client with 39 endpoint definitions, rate limiting (1 req/sec), URL templating with `{date}`, `{user_id}`, `{activity_id}` placeholders
-- `src/garminconnect/models/` — SQLAlchemy models for 28 tables (daily, monitoring, sleep, activities, training, workouts, gamification)
+- `src/garminconnect/api/` — API client with 43 endpoint definitions, rate limiting (1 req/sec), URL templating with `{date}`, `{user_id}`, `{activity_id}` placeholders
+- `src/garminconnect/models/` — SQLAlchemy models for 34 tables (daily, monitoring, sleep, activities, training, workouts, gamification, biometrics, gear, hydration)
 - `src/garminconnect/db/` — TimescaleDB + MongoDB connection and HealthRepository pattern (unified interface for both DBs)
 - `src/garminconnect/sync/` — extractors (JSON→models), sync pipeline (fetch→store raw→extract→upsert), APScheduler daemon
-- `src/garminconnect/mcp/` — FastMCP server with 6 tools, BearerAuthMiddleware, read-only SQL enforcement via regex
+- `src/garminconnect/mcp/` — FastMCP server with 11 tools (8 read-only + 3 workout write-back), 6 prompts, 3 resources, 37 query templates, BearerAuthMiddleware, read-only SQL enforcement via regex
 - `src/garminconnect/cli/` — Click CLI (login, backfill, sync-one, daemon, mcp, status). Uses lazy imports per command.
 - `src/garminconnect/utils/` — Garmin-aligned date range calculations (Monday–Sunday weeks, "today" excluded)
 - `alembic/` — Database migrations; env.py handles TimescaleDB hypertable creation
@@ -73,7 +73,7 @@ docker compose run --rm garmin-cli status
 ## Testing
 
 - **Async mode**: pytest-asyncio with `asyncio_mode = "auto"` (pyproject.toml)
-- **Fixtures**: Sample Garmin JSON responses in `tests/fixtures/` (daily_summary.json, heart_rate.json, stress.json, sleep.json, activity_detail.json, activity_gps.json, endurance_score.json, hill_score.json, race_predictions.json, training_status.json)
+- **Fixtures**: Sample Garmin JSON responses in `tests/fixtures/` (daily_summary.json, heart_rate.json, stress.json, sleep.json, activity_detail.json, activity_gps.json, endurance_score.json, hill_score.json, race_predictions.json, training_status.json, lactate_threshold.json, cycling_ftp.json, hydration_daily.json, gear.json, activity_laps.json, activity_weather.json)
 - **Integration tests**: Use testcontainers to spin up real PostgreSQL + MongoDB — require Docker running
 - **Code style**: ruff (line-length=100, target py312)
 
