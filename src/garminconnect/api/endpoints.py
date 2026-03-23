@@ -30,6 +30,7 @@ ENDPOINTS: list[Endpoint] = [
     Endpoint("daily_steps", "/usersummary-service/stats/steps/daily/{start}/{end}", EndpointCategory.DAILY),
     Endpoint("daily_stats", "/userstats-service/wellness/daily/{user_id}?fromDate={start}&untilDate={end}", EndpointCategory.DAILY, requires_user_id=True),
     Endpoint("hydration", "/usersummary-service/usersummary/hydration/allData/{date}", EndpointCategory.DAILY),
+    Endpoint("hydration_daily", "/usersummary-service/usersummary/hydration/daily/{date}", EndpointCategory.DAILY),
     Endpoint("heart_rate", "/wellness-service/wellness/dailyHeartRate/{user_id}?date={date}", EndpointCategory.MONITORING, requires_user_id=True),
     Endpoint("stress", "/wellness-service/wellness/dailyStress/{date}", EndpointCategory.MONITORING),
     # body_battery: extracted from stress endpoint response (bodyBatteryValuesArray)

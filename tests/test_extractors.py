@@ -8,6 +8,7 @@ from garminconnect.sync.extractors import (
     extract_trackpoints, extract_endurance_score, extract_hill_score,
     extract_race_predictions, extract_training_status, extract_hrv_readings,
     extract_lactate_threshold, extract_cycling_ftp,
+    extract_hydration,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -158,3 +159,11 @@ def test_extract_cycling_ftp():
     assert result is not None
     assert result.ftp == 305
     assert result.source == "DEVICE"
+
+
+def test_extract_hydration():
+    data = json.loads((FIXTURES / "hydration_daily.json").read_text())
+    result = extract_hydration(date(2026, 3, 22), data)
+    assert result.intake_ml == 1200.0
+    assert result.goal_ml == 5512.0
+    assert result.sweat_loss_ml == 2673.0

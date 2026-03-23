@@ -260,6 +260,12 @@ QUERY_TEMPLATES = {
         ORDER BY date DESC
         LIMIT :limit
     """,
+    "hydration_trend": """
+        SELECT date, intake_ml, goal_ml, sweat_loss_ml, daily_average_ml
+        FROM hydration
+        WHERE date BETWEEN :start AND :end
+        ORDER BY date DESC
+    """,
 }
 
 
@@ -273,5 +279,5 @@ def get_table_list() -> list[str]:
         "race_predictions", "running_tolerance", "personal_records",
         "workouts", "badges", "training_plans", "scheduled_workouts",
         "endurance_score", "hill_score", "hrv_readings", "sync_status",
-        "lactate_threshold", "cycling_ftp",
+        "lactate_threshold", "cycling_ftp", "hydration",
     ]

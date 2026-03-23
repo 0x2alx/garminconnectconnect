@@ -18,6 +18,7 @@ from garminconnect.sync.extractors import (
     extract_scheduled_workouts, extract_trackpoints,
     extract_endurance_score, extract_hill_score, extract_race_predictions,
     extract_lactate_threshold, extract_cycling_ftp,
+    extract_hydration,
 )
 
 logger = structlog.get_logger()
@@ -342,6 +343,19 @@ class SyncPipeline:
         except Exception as e:
             logger.error("lactate_threshold_sync_failed", error=str(e))
         return 0
+
+    def sync_hydration(self, target_date: date) -> bool:
+        try:
+            raw_data = self._fetch_with_retry("hydration_daily", date=target_date)
+            if raw_data:
+                self.repo.store_raw("hydration_daily", target_date, raw_data)
+                entry = extract_hydration(target_date, raw_data)
+                self.repo.upsert(entry)
+                logger.info("synced_hydration", date=target_date.isoformat())
+                return True
+        except Exception as e:
+            logger.error("hydration_sync_failed", error=str(e))
+        return False
 
     def sync_cycling_ftp(self) -> bool:
         try:

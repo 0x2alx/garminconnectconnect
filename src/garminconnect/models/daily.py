@@ -47,3 +47,13 @@ class BodyComposition(Base):
     muscle_mass_kg: Mapped[float | None] = mapped_column(Float, default=None)
     bone_mass_kg: Mapped[float | None] = mapped_column(Float, default=None)
     body_water_pct: Mapped[float | None] = mapped_column(Float, default=None)
+
+
+class Hydration(Base):
+    __tablename__ = "hydration"
+    date: Mapped[date] = mapped_column(Date, primary_key=True)
+    intake_ml: Mapped[float | None] = mapped_column(Float, default=None)
+    goal_ml: Mapped[float | None] = mapped_column(Float, default=None)
+    daily_average_ml: Mapped[float | None] = mapped_column(Float, default=None)
+    sweat_loss_ml: Mapped[float | None] = mapped_column(Float, default=None)
+    activity_intake_ml: Mapped[float | None] = mapped_column(Float, default=None)

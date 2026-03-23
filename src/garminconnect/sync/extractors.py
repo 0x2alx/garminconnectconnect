@@ -2,7 +2,7 @@
 from __future__ import annotations
 from datetime import date, datetime, timezone
 from typing import Any
-from garminconnect.models.daily import DailySummary, BodyComposition
+from garminconnect.models.daily import DailySummary, BodyComposition, Hydration
 from garminconnect.models.monitoring import (
     BodyBatteryReading, HeartRateReading, HRVReading, RespirationReading, SpO2Reading,
     StressReading, BodyBatteryEvent, IntensityMinutesReading, FloorsReading, BloodPressureReading,
@@ -771,6 +771,17 @@ def extract_lactate_threshold(data: list[dict[str, Any]]) -> list[LactateThresho
             heart_rate=item.get("hearRate"),  # Garmin typo: "hearRate" not "heartRate"
         ))
     return results
+
+
+def extract_hydration(target_date: date, data: dict[str, Any]) -> Hydration:
+    return Hydration(
+        date=target_date,
+        intake_ml=data.get("valueInML"),
+        goal_ml=data.get("goalInML"),
+        daily_average_ml=data.get("dailyAverageinML"),
+        sweat_loss_ml=data.get("sweatLossInML"),
+        activity_intake_ml=data.get("activityIntakeInML"),
+    )
 
 
 def extract_cycling_ftp(data: dict[str, Any]) -> CyclingFTP | None:
