@@ -221,4 +221,72 @@ def create_mcp_server(postgres_url: str, api_key: str = "") -> FastMCP:
     def available_queries() -> str:
         return _json.dumps(list(QUERY_TEMPLATES.keys()), indent=2)
 
+    @mcp.prompt()
+    def weekly_health_review(period: str = "week") -> str:
+        """WHEN TO USE: When asked about overall health, weekly review, or general wellness status."""
+        return (
+            f"Analyze health data for period='{period}' using these tools:\n"
+            f"1. get_health_summary(period='{period}') for daily averages\n"
+            f"2. query_health_data('sleep_trend', period='{period}') for sleep\n"
+            f"3. query_health_data('hrv_trend', period='{period}') for HRV\n"
+            f"4. query_health_data('training_readiness_trend', period='{period}') for readiness\n"
+            f"Synthesize into actionable insights about recovery, fitness, and sleep."
+        )
+
+    @mcp.prompt()
+    def activity_analysis(activity_type: str = "running") -> str:
+        """WHEN TO USE: When asked about recent activities, training progress, or performance trends."""
+        return (
+            f"Analyze recent {activity_type} activities:\n"
+            f"1. query_health_data('activity_list', limit=10) for recent activities\n"
+            f"2. execute_sql to filter by activity_type='{activity_type}'\n"
+            f"Look for trends in pace, HR, training effect, and distance."
+        )
+
+    @mcp.prompt()
+    def recovery_check() -> str:
+        """WHEN TO USE: When asked if ready to train, about recovery, or readiness."""
+        return (
+            "Assess recovery and readiness:\n"
+            "1. query_health_data('recovery_analysis', period='week')\n"
+            "2. query_health_data('training_readiness_trend', period='week')\n"
+            "3. query_health_data('sleep_trend', period='3')\n"
+            "Recommend: train hard, easy recovery, or rest today."
+        )
+
+    @mcp.prompt()
+    def sleep_report(period: str = "week") -> str:
+        """WHEN TO USE: When asked about sleep quality, patterns, or sleep issues."""
+        return (
+            f"Analyze sleep for period='{period}':\n"
+            f"1. query_health_data('sleep_trend', period='{period}')\n"
+            f"2. query_health_data('hrv_trend', period='{period}') for overnight HRV\n"
+            f"Evaluate: duration consistency, deep/REM ratios, sleep score trends, HRV correlation."
+        )
+
+    @mcp.prompt()
+    def training_deep_dive(period: str = "4weeks") -> str:
+        """WHEN TO USE: When asked about training load, status, VO2max, or fitness trends."""
+        return (
+            f"Deep training analysis for period='{period}':\n"
+            f"1. query_health_data('training_status_trend', period='{period}')\n"
+            f"2. query_health_data('activity_list', period='{period}')\n"
+            f"3. query_health_data('race_predictions_trend', period='{period}')\n"
+            f"4. query_health_data('endurance_hill_scores', period='{period}')\n"
+            f"Analyze: training status progression, weekly load, VO2max trend, race prediction changes."
+        )
+
+    @mcp.prompt()
+    def compare_recent_runs() -> str:
+        """WHEN TO USE: When asked to compare runs or track running improvement."""
+        return (
+            "Compare recent running activities:\n"
+            "1. execute_sql: SELECT activity_id, name, start_time, distance_meters/1000 AS km, "
+            "duration_seconds/60 AS mins, avg_heart_rate, avg_speed, avg_cadence, "
+            "avg_ground_contact_time, avg_stride_length, training_load "
+            "FROM activities WHERE activity_type='running' ORDER BY start_time DESC LIMIT 10\n"
+            "2. Compare pace, HR efficiency (pace/HR), running dynamics, training load.\n"
+            "3. Highlight improvements and areas to work on."
+        )
+
     return mcp
