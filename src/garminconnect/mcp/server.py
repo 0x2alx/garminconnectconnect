@@ -196,4 +196,29 @@ def create_mcp_server(postgres_url: str, api_key: str = "") -> FastMCP:
             )).fetchall()
             return [dict(zip(["metric", "last_date", "completed", "failed"], row)) for row in rows]
 
+    import json as _json
+
+    @mcp.resource("garmin://instructions", description="How to query Garmin health data")
+    def query_instructions() -> str:
+        return (
+            "Garmin health data MCP server -- 28 tables in TimescaleDB.\n\n"
+            "Tools:\n"
+            "- list_tables: See tables and row counts\n"
+            "- get_table_schema: Column details for any table\n"
+            "- query_health_data: Pre-built queries (pass period='week','4weeks','month','year' or explicit dates)\n"
+            "- execute_sql: Custom read-only SQL (SELECT/WITH only, max 500 rows)\n"
+            "- get_health_summary: Quick overview of key metrics\n"
+            "- get_sync_status: When each metric was last synced\n\n"
+            "Dates: Weeks are Mon-Sun. Periods exclude today (partial day).\n"
+            "Periods: 'week', '4weeks', 'month', 'month-1', 'year', or a number like '30'."
+        )
+
+    @mcp.resource("garmin://tables", description="All health data table names")
+    def available_tables() -> str:
+        return _json.dumps(get_table_list(), indent=2)
+
+    @mcp.resource("garmin://queries", description="Available pre-built query template names")
+    def available_queries() -> str:
+        return _json.dumps(list(QUERY_TEMPLATES.keys()), indent=2)
+
     return mcp
