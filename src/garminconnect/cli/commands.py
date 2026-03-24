@@ -59,16 +59,25 @@ def backfill(days: int, force: bool) -> None:
     pipeline.sync_endurance_score()
     click.echo("Syncing hill score...")
     pipeline.sync_hill_score()
-    click.echo("Syncing running tolerance...")
-    pipeline.sync_running_tolerance()
+    click.echo("Syncing race predictions...")
+    pipeline.sync_race_predictions()
     click.echo("Syncing workouts...")
     pipeline.sync_workouts()
     click.echo("Syncing personal records...")
     pipeline.sync_personal_records()
     click.echo("Syncing badges...")
     pipeline.sync_badges()
-    click.echo("Syncing training plan...")
-    pipeline.sync_training_plan()
+    click.echo("Syncing lactate threshold...")
+    pipeline.sync_lactate_threshold()
+    click.echo("Syncing cycling FTP...")
+    pipeline.sync_cycling_ftp()
+    click.echo("Syncing gear...")
+    pipeline.sync_gear()
+    click.echo("Syncing hydration...")
+    current = start
+    while current <= end:
+        pipeline.sync_hydration(current)
+        current += timedelta(days=1)
     click.echo("Syncing calendar...")
     pipeline.sync_calendar()
     click.echo("Backfill complete.")
@@ -188,8 +197,9 @@ def sync_one(endpoint: str, target_date: str, force: bool) -> None:
     # Validate endpoint name
     valid_endpoints = list(DAILY_SYNC_ENDPOINTS) + [
         "body_composition", "weight", "activities",
-        "running_tolerance", "workouts", "personal_records", "badges", "training_plan", "calendar",
+        "workouts", "personal_records", "badges", "calendar",
         "race_predictions", "endurance_score", "hill_score",
+        "lactate_threshold", "cycling_ftp", "hydration", "gear",
     ]
     if endpoint not in valid_endpoints:
         click.echo(f"Unknown endpoint: {endpoint}", err=True)
@@ -230,9 +240,6 @@ def sync_one(endpoint: str, target_date: str, force: bool) -> None:
     elif endpoint in ("body_composition", "weight"):
         count = pipeline.sync_body_composition(parsed_date, parsed_date)
         click.echo(f"Synced {count} body composition entries.")
-    elif endpoint == "running_tolerance":
-        pipeline.sync_running_tolerance()
-        click.echo("Synced running tolerance.")
     elif endpoint == "workouts":
         synced = pipeline.sync_workouts()
         click.echo(f"Synced {len(synced)} workouts.")
@@ -242,9 +249,6 @@ def sync_one(endpoint: str, target_date: str, force: bool) -> None:
     elif endpoint == "badges":
         count = pipeline.sync_badges()
         click.echo(f"Synced {count} badges.")
-    elif endpoint == "training_plan":
-        plan_id = pipeline.sync_training_plan()
-        click.echo(f"Synced training plan: {plan_id}" if plan_id else "No active training plan.")
     elif endpoint == "calendar":
         count = pipeline.sync_calendar(year=parsed_date.year, month=parsed_date.month)
         click.echo(f"Synced {count} calendar items for {parsed_date.year}-{parsed_date.month:02d}.")
@@ -257,6 +261,18 @@ def sync_one(endpoint: str, target_date: str, force: bool) -> None:
     elif endpoint == "hill_score":
         pipeline.sync_hill_score()
         click.echo("Synced hill score.")
+    elif endpoint == "lactate_threshold":
+        count = pipeline.sync_lactate_threshold()
+        click.echo(f"Synced {count} lactate threshold entries.")
+    elif endpoint == "cycling_ftp":
+        pipeline.sync_cycling_ftp()
+        click.echo("Synced cycling FTP.")
+    elif endpoint == "hydration":
+        pipeline.sync_hydration(parsed_date)
+        click.echo(f"Synced hydration for {parsed_date}.")
+    elif endpoint == "gear":
+        count = pipeline.sync_gear()
+        click.echo(f"Synced {count} gear items.")
     else:
         results = pipeline.sync_date(parsed_date, endpoints=[endpoint], force=force)
         status = results.get(endpoint, "unknown")

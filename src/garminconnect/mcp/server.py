@@ -82,8 +82,14 @@ def create_mcp_server(postgres_url: str, api_key: str = "", garth_token_dir: str
         return result
 
     @mcp.tool(annotations=_RO)
-    def get_table_schema(table_name: str) -> dict[str, Any]:
-        """Get column names and types for a specific table."""
+    def get_table_schema(table_name: str = "") -> dict[str, Any]:
+        """Get column names and types for a specific table.
+
+        Args:
+            table_name: Name of the table to inspect (required).
+        """
+        if not table_name:
+            return {"error": "table_name is required", "available_tables": get_table_list()}
         if table_name not in get_table_list():
             return {"error": f"Unknown table: {table_name}"}
         with engine.connect() as conn:

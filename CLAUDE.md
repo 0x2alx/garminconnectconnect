@@ -34,8 +34,8 @@ ruff check src/ tests/
 # Type check
 mypy src/
 
-# Build and run
-docker compose build
+# Build and run — ALWAYS use --no-cache after code changes to avoid stale wheel cache
+docker compose build --no-cache
 docker compose up -d
 
 # CLI commands (garmin-cli profile runs interactively, not as a daemon)

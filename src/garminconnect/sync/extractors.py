@@ -767,7 +767,7 @@ def extract_lactate_threshold(data: list[dict[str, Any]]) -> list[LactateThresho
         if not cal_date:
             continue
         results.append(LactateThreshold(
-            date=date.fromisoformat(cal_date),
+            date=date.fromisoformat(cal_date[:10]),
             sport=item.get("sport", "DEFAULT"),
             speed=item.get("speed"),
             heart_rate=item.get("hearRate"),  # Garmin typo: "hearRate" not "heartRate"
@@ -791,7 +791,7 @@ def extract_cycling_ftp(data: dict[str, Any]) -> CyclingFTP | None:
     if not cal_date:
         return None
     return CyclingFTP(
-        date=date.fromisoformat(cal_date),
+        date=date.fromisoformat(cal_date[:10]),
         ftp=data.get("functionalThresholdPower"),
         source=data.get("biometricSourceType"),
     )
