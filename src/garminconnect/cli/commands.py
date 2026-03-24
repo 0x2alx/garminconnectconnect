@@ -59,8 +59,6 @@ def backfill(days: int, force: bool) -> None:
     pipeline.sync_endurance_score()
     click.echo("Syncing hill score...")
     pipeline.sync_hill_score()
-    click.echo("Syncing race predictions...")
-    pipeline.sync_race_predictions()
     click.echo("Syncing workouts...")
     pipeline.sync_workouts()
     click.echo("Syncing personal records...")
