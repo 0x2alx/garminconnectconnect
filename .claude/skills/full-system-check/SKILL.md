@@ -1,7 +1,6 @@
 ---
 name: full-system-check
-description: Comprehensive read-only health check of the entire garminconnectconnect system — git, build, tests, services, logs
-disable-model-invocation: true
+description: Comprehensive read-only health check of the entire garminconnectconnect system — git, build, tests, services, logs. Posts summary to Discord.
 ---
 
 # Full System Check — garminconnectconnect
@@ -20,7 +19,7 @@ disable-model-invocation: true
 - **Container name prefix**: `garminconnectconnect-`
 - **Log locations**: All services log to stdout — access via `docker compose -f /home/k2/CODE/garminconnectconnect/docker-compose.yml logs <service>`
 - **Databases**: TimescaleDB (PostgreSQL 16 + TimescaleDB extension, 34 tables, 8 hypertables), MongoDB 7 (`garmin_raw` database)
-- **Report output**: `/home/k2/.openclaw/ext_ai_workdir/YYYY-MM-DD/claude_system_garmin-check_HHMM.md`
+- **Report output**: `/home/k2/CODE/claude-k2/k2/shared/reports/YYYY-MM-DD/cron-garmin-full-system-check-analysis-HHMM.md`
 
 ---
 
@@ -235,7 +234,7 @@ DO NOT modify anything. Read-only.
 
 1. **Create the report directory** if it doesn't exist:
    ```
-   mkdir -p /home/k2/.openclaw/ext_ai_workdir/$(date +%Y-%m-%d)
+   mkdir -p /home/k2/CODE/claude-k2/k2/shared/reports/$(date +%Y-%m-%d)
    ```
 
 2. **Determine overall status**:
@@ -243,7 +242,7 @@ DO NOT modify anything. Read-only.
    - **DEGRADED**: Any phase reports WARN but none report FAIL/ERROR
    - **CRITICAL**: Any phase reports FAIL/ERROR
 
-3. **Write the report** to `/home/k2/.openclaw/ext_ai_workdir/YYYY-MM-DD/claude_system_garmin-check_HHMM.md` using this format:
+3. **Write the report** to `/home/k2/CODE/claude-k2/k2/shared/reports/YYYY-MM-DD/cron-garmin-full-system-check-analysis-HHMM.md` using this format:
 
    ```markdown
    # garminconnectconnect System Check — YYYY-MM-DD HH:MM
@@ -268,10 +267,43 @@ DO NOT modify anything. Read-only.
    [Note any agents that failed to run, timed out, or returned errors. "None" if all succeeded.]
    ```
 
-4. **Conditional output**:
-   - If **HEALTHY**: Print a single line:
-     `✅ garminconnectconnect — HEALTHY | Build: ok | Tests: X/Y passed | Services: all up | 📄 <report-path>`
-   - If **DEGRADED** or **CRITICAL**: Print 3-5 lines listing the issues with markers:
-     - 🔴 for FAIL/ERROR/CRITICAL items
-     - 🟡 for WARN/DEGRADED items
-     - End with `📄 <report-path>`
+4. **Compose the Discord message**:
+
+   **If HEALTHY:**
+   ```
+   ✅ **Garmin System Check — HEALTHY**
+   Build: ok | Tests: X/Y passed | Services: all up | Sync: fresh
+   📄 shared/reports/YYYY-MM-DD/cron-garmin-full-system-check-analysis-HHMM.md
+   ```
+
+   **If DEGRADED or CRITICAL:**
+   ```
+   {emoji} **Garmin System Check — {STATUS}**
+   🔴 {failure description}
+   🟡 {warning description}
+   Build: X | Tests: X/Y | Services: X/Y up
+   📄 shared/reports/YYYY-MM-DD/cron-garmin-full-system-check-analysis-HHMM.md
+   ```
+
+   Emoji: ✅ = all clear, ⚠️ = degraded, 🔴 = critical. No GIF.
+
+5. **Dedup check:** Before posting, follow the dedup protocol in `/home/k2/CODE/claude-k2/k2/DEDUP.md` — fetch Discord history, compare your draft message against what was already posted today, and remove or condense any already-reported information. If everything in your draft was already reported, skip the Discord post entirely (still save the report).
+
+6. **Post to Discord exactly once**:
+
+```bash
+WEBHOOK=$(grep DISCORD_CLAUDE_K2_WEBHOOK ~/CODE/claude-k2/shared/.env | cut -d= -f2-)
+curl -s -X POST "$WEBHOOK" \
+  -H "Content-Type: application/json" \
+  -d "$(jq -n --arg content "$MESSAGE" '{content: $content}')"
+```
+
+Post exactly once — if curl returns successfully, do NOT post again. If curl fails (non-zero exit code), log the error to stdout and do not retry.
+
+Output the same message to stdout as well.
+
+## Data Integrity
+
+Only report data from tool calls in THIS session. If a tool returns NULL, empty, or errors: say "data unavailable" — never guess or fill in from memory.
+
+Use the actual current date and time in all report headers — do not leave YYYY-MM-DD as a literal placeholder.
