@@ -148,7 +148,7 @@ def mcp() -> None:
         middleware = []
         if settings.mcp_api_key:
             middleware.append(Middleware(BearerAuthMiddleware, api_key=settings.mcp_api_key))
-        app = server.http_app(transport="streamable-http", middleware=middleware)
+        app = server.http_app(transport="streamable-http", path="/", middleware=middleware)
         uvicorn.run(app, host=settings.mcp_host, port=settings.mcp_port)
     else:
         click.echo("Starting MCP server (stdio)...")

@@ -18,6 +18,10 @@ class BearerAuthMiddleware:
         self.api_key = api_key
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "lifespan":
+            await self.app(scope, receive, send)
+            return
+
         if scope["type"] not in ("http", "websocket") or not self.api_key:
             await self.app(scope, receive, send)
             return

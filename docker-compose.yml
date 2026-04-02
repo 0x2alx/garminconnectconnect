@@ -78,7 +78,7 @@ services:
     environment:
       POSTGRES_HOST: host.docker.internal
       MONGO_HOST: mongodb
-      MCP_TRANSPORT: sse
+      MCP_TRANSPORT: streamable-http
       MCP_HOST: "0.0.0.0"
       MCP_PORT: "8080"
     extra_hosts:
