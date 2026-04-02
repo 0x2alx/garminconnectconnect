@@ -38,6 +38,7 @@ docker-compose.override.yml
 
 # Claude Code
 .claude/
+run_claude.sh
 
 # Superpowers plans/specs (may contain secrets or personal info)
 docs/superpowers/
