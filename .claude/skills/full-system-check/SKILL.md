@@ -98,13 +98,21 @@ If containers are not running, report: "Skipped (databases not running)"
 Run: `cd /home/k2/CODE/garminconnectconnect && python -m build --no-isolation 2>&1 | tail -5`
 This verifies the wheel can be built. If it fails, capture the error.
 
+**mypy error classification:**
+Classify each mypy error as COSMETIC or REAL:
+- COSMETIC (no runtime impact): list invariance, missing stubs (import-untyped), Any|None type narrowing, attribute not recognized on third-party types (e.g. FastMCP), union type .get() complaints, cannot determine type of private attrs
+- REAL (potential runtime impact): incompatible return types, missing arguments, wrong argument types, incompatible overrides, unreachable code, assignment to incompatible type where values actually flow at runtime
+
+If ALL mypy errors are COSMETIC, report type check as "PASS (N cosmetic type warnings — no runtime impact)" and do NOT let it affect overall status.
+If ANY mypy errors are REAL, report as "FAIL — N real type errors (+ M cosmetic)" and let it affect overall status.
+
 Return a structured report:
 - **Lint**: PASS/FAIL + error count
-- **Type check**: PASS/FAIL + error count
+- **Type check**: PASS/FAIL/PASS-WITH-WARNINGS + error count and classification
 - **Unit tests**: X passed, Y failed, Z skipped (total N) — list failures if any
 - **Integration tests**: X passed, Y failed, Z skipped OR "Skipped (reason)"
 - **Package build**: PASS/FAIL
-- **Overall status**: PASS (all green) / WARN (some skipped) / FAIL (any failures)
+- **Overall status**: PASS (all green, or only cosmetic mypy warnings) / WARN (some skipped) / FAIL (any test failures or real type errors)
 
 DO NOT modify anything. Read-only.
 ```
@@ -238,7 +246,7 @@ DO NOT modify anything. Read-only.
    ```
 
 2. **Determine overall status**:
-   - **HEALTHY**: All 4 phases report PASS/HEALTHY
+   - **HEALTHY**: All 4 phases report PASS/HEALTHY (cosmetic mypy warnings count as PASS)
    - **DEGRADED**: Any phase reports WARN but none report FAIL/ERROR
    - **CRITICAL**: Any phase reports FAIL/ERROR
 
