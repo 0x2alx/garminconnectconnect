@@ -78,6 +78,7 @@ services:
     environment:
       POSTGRES_HOST: host.docker.internal
       MONGO_HOST: mongodb
+      GARMIN_TOKEN_DIR: /home/appuser/.garminconnect
       MCP_TRANSPORT: streamable-http
       MCP_HOST: "0.0.0.0"
       MCP_PORT: "8080"
@@ -88,6 +89,8 @@ services:
     depends_on:
       timescaledb:
         condition: service_healthy
+    volumes:
+      - garmin_tokens:/home/appuser/.garminconnect
     entrypoint: ["garmin-server"]
     command: ["mcp"]
     restart: unless-stopped
