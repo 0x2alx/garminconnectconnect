@@ -147,7 +147,22 @@ class SyncPipeline:
                     break  # Last page
                 offset += limit
             if synced_ids:
-                self.sync_activity_details(synced_ids)
+                # Only fetch details for activities not already in the trackpoints table
+                session = self.repo._session_factory()
+                try:
+                    result = session.execute(
+                        text("SELECT DISTINCT activity_id FROM activity_trackpoints WHERE activity_id = ANY(:ids)"),
+                        {"ids": synced_ids},
+                    )
+                    existing = {row[0] for row in result}
+                finally:
+                    session.close()
+                new_ids = [aid for aid in synced_ids if aid not in existing]
+                if new_ids:
+                    logger.info("new_activities_for_details", new=len(new_ids), skipped=len(existing))
+                    self.sync_activity_details(new_ids)
+                else:
+                    logger.debug("all_activities_already_synced", count=len(synced_ids))
         except Exception as e:
             logger.error("activity_sync_failed", error=str(e))
         return synced_ids
