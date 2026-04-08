@@ -393,9 +393,14 @@ def create_mcp_server(postgres_url: str, api_key: str = "", garth_token_dir: str
         Args:
             name: Workout name.
             sport: Sport type (running, cycling, swimming, strength).
-            steps_json: JSON array of step objects. Each step: {"type": "warmup|interval|cooldown|recovery|rest",
-                        "duration_seconds": int, "distance_meters": float, "target_pace_min": [slow, fast],
-                        "description": str}
+            steps_json: JSON array of step objects. Each step has:
+                        "type": "warmup|interval|cooldown|recovery|rest",
+                        "duration_seconds": int OR "distance_meters": float (end condition),
+                        "target_pace_min": [slow, fast] min/km floats (e.g. [6.0, 5.0] for 6:00-5:00/km),
+                        "target_hr_bpm": [low, high] (e.g. [140, 160]),
+                        "target_power_watts": [low, high] (e.g. [200, 250]),
+                        "target_cadence_spm": [low, high] (e.g. [170, 180]),
+                        "description": str. Only one target type per step.
         """
         if not garth_token_dir:
             return {"error": "Workout write-back not configured (no garth_token_dir)"}

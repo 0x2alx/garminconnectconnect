@@ -52,11 +52,41 @@ def test_build_workout_pace_target():
         {"type": "interval", "distance_meters": 1000, "target_pace_min": [5.0, 4.0]},
     ])
     step = payload["workoutSegments"][0]["workoutSteps"][0]
-    assert step["targetType"]["workoutTargetTypeKey"] == "speed.zone"
+    assert step["targetType"]["workoutTargetTypeKey"] == "pace.zone"
     # faster pace (4:00) = higher mps = targetValueOne
     assert step["targetValueOne"] == pytest.approx(4.167, abs=0.01)
     # slower pace (5:00) = lower mps = targetValueTwo
     assert step["targetValueTwo"] == pytest.approx(3.333, abs=0.01)
+
+
+def test_build_workout_hr_target():
+    payload = build_workout_payload("HR", steps=[
+        {"type": "interval", "duration_seconds": 600, "target_hr_bpm": [140, 160]},
+    ])
+    step = payload["workoutSegments"][0]["workoutSteps"][0]
+    assert step["targetType"]["workoutTargetTypeKey"] == "heart.rate.zone"
+    assert step["targetValueOne"] == 140
+    assert step["targetValueTwo"] == 160
+
+
+def test_build_workout_power_target():
+    payload = build_workout_payload("Power", sport="cycling", steps=[
+        {"type": "interval", "duration_seconds": 300, "target_power_watts": [200, 250]},
+    ])
+    step = payload["workoutSegments"][0]["workoutSteps"][0]
+    assert step["targetType"]["workoutTargetTypeKey"] == "power.zone"
+    assert step["targetValueOne"] == 200
+    assert step["targetValueTwo"] == 250
+
+
+def test_build_workout_cadence_target():
+    payload = build_workout_payload("Cadence", steps=[
+        {"type": "interval", "duration_seconds": 600, "target_cadence_spm": [170, 180]},
+    ])
+    step = payload["workoutSegments"][0]["workoutSteps"][0]
+    assert step["targetType"]["workoutTargetTypeKey"] == "cadence.zone"
+    assert step["targetValueOne"] == 170
+    assert step["targetValueTwo"] == 180
 
 
 def test_build_workout_lap_button():
