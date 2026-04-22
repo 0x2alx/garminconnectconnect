@@ -99,9 +99,36 @@ Run: `cd /home/k2/CODE/garminconnectconnect && python -m build --no-isolation 2>
 This verifies the wheel can be built. If it fails, capture the error.
 
 **mypy error classification:**
+
+For each mypy error, OPEN the file and read ±10 lines around the flagged line BEFORE classifying. A type error is only REAL if it can actually bite at runtime. Many look real on the summary line but are flow-sensitive blind spots of mypy. Do not classify from the summary text alone.
+
 Classify each mypy error as COSMETIC or REAL:
-- COSMETIC (no runtime impact): list invariance, missing stubs (import-untyped), Any|None type narrowing, attribute not recognized on third-party types (e.g. FastMCP), union type .get() complaints, cannot determine type of private attrs
-- REAL (potential runtime impact): incompatible return types, missing arguments, wrong argument types, incompatible overrides, unreachable code, assignment to incompatible type where values actually flow at runtime
+
+- **COSMETIC** (no real runtime impact — treat as PASS):
+  - list invariance, missing stubs (import-untyped), Any|None narrowing
+  - attribute not recognized on third-party types (e.g. FastMCP private attrs)
+  - `.get()` / attribute access on a union type (`dict | list | None`) where EITHER:
+    - the call is wrapped in a broad `try/except` that falls back safely, OR
+    - the None/list branch is unreachable given the endpoint's known response shape
+  - `datetime | None` (or any Optional) assigned to a narrower-typed variable where
+    the None case is guarded by `continue` / `return` / `raise` / `if x is None:` before use
+  - `Any | None` passed where a narrower type is expected, when the caller has already
+    isinstance-checked or None-checked upstream
+  - union-attr errors on `garth.connectapi` return values — garth typing is loose and
+    call sites already wrap in try/except
+  - any error where reading the surrounding code shows the value is checked or narrowed
+    before the flagged use
+
+- **REAL** (potential runtime impact — flag and let it affect status):
+  - incompatible return types where the wrong type actually reaches a caller
+  - missing arguments
+  - wrong argument types with no runtime coercion or upstream guard
+  - incompatible overrides that change semantics
+  - unreachable code (dead logic — usually a real bug)
+  - assignment to incompatible type where the value flows into an UNGUARDED use
+
+Only flag REAL when you can point to a concrete unguarded code path. If you can't cite
+the line where the bad value would be consumed without a guard, it's COSMETIC.
 
 If ALL mypy errors are COSMETIC, report type check as "PASS (N cosmetic type warnings — no runtime impact)" and do NOT let it affect overall status.
 If ANY mypy errors are REAL, report as "FAIL — N real type errors (+ M cosmetic)" and let it affect overall status.
@@ -159,6 +186,12 @@ Analyze the logs for each service:
 - Look for ERROR, FATAL, PANIC, deadlock, out of memory, connection refused
 - Check for checkpoint warnings or replication issues
 - Routine "checkpoint starting"/"checkpoint complete" messages are normal — skip those
+- **IGNORE failed auth attempts / "role does not exist" / "password authentication failed"**
+  entries. Port 5432 is intentionally bound to `0.0.0.0` so host tools and LAN clients
+  (DBeaver, pgadmin, etc.) can connect. pg_hba.conf enforces scram-sha-256, so rejected
+  probes are the auth layer working as designed. Do NOT flag these as WARN, "credential
+  stuffing", "externally exposed", or a security issue — that is expected background noise
+  for this deployment.
 
 **For mongodb:**
 - Look for errors, authentication failures, connection issues
@@ -210,6 +243,15 @@ Run these commands using the Bash tool (run independent ones in parallel):
 
 **Port checks:**
 9. `ss -tlnp | grep -E ':(5432|8080|27017)' 2>&1 || echo "No matching ports found"`
+
+**Expected port bindings — DO NOT flag these as security concerns:**
+- **5432 (TimescaleDB)**: bound to `0.0.0.0:5432` — INTENDED. The DB is accessed by host
+  tools and LAN clients (DBeaver, pgadmin, analytics scripts). Report the binding
+  neutrally (e.g. "LISTENING on 0.0.0.0:5432"). Do NOT add ⚠️, "exposed externally",
+  "security concern", or similar annotations.
+- **8080 (MCP)**: bound to `127.0.0.1:8080` — INTENDED. Localhost-only.
+- **27017 (MongoDB)**: internal Docker network only — INTENDED.
+Only flag a port if it's *missing* or bound to an unexpected address.
 
 **Image vs running version:**
 10. Get the image ID of the running garmin-server container:
