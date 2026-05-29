@@ -1,6 +1,7 @@
 services:
   timescaledb:
     image: timescale/timescaledb:latest-pg16
+    restart: unless-stopped
     ports:
       - "0.0.0.0:5432:5432"
     environment:
@@ -17,6 +18,7 @@ services:
 
   mongodb:
     image: mongo:7
+    restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-garmin}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
@@ -45,7 +47,7 @@ services:
         condition: service_healthy
     volumes:
       - garmin_tokens:/home/appuser/.garminconnect
-    restart: on-failure:3
+    restart: unless-stopped
 
   # ── CLI commands (run with: docker compose run --rm garmin-cli <command>) ──
   garmin-cli:
