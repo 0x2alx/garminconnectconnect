@@ -323,12 +323,14 @@ DO NOT modify anything. Read-only.
 
 4. **Compose the Discord message**:
 
+**Discord policy — post ONLY on DEGRADED or CRITICAL.**
+
+If the check is HEALTHY, post NOTHING: print the one-line status to stdout for the cron log, save the report, and stop. Do not open the webhook, do not touch the sentinel. Alex is not the consumer of a routine infrastructure check; he is the consumer of the exception. A daily green tick trains him to ignore the channel, which costs him the one message that matters.
+
+A check that could not be RUN is not healthy — treat an unreachable service or a failed probe as DEGRADED and post it, because unverifiable is indistinguishable from broken.
+
    **If HEALTHY:**
-   ```
-   ✅ **Garmin System Check — HEALTHY**
-   Build: ok | Tests: X/Y passed | Services: all up | Sync: fresh
-   📄 shared/reports/YYYY-MM-DD/cron-garmin-full-system-check-analysis-HHMM.md
-   ```
+(post nothing — see policy above; stdout only)
 
    **If DEGRADED or CRITICAL:**
    ```
