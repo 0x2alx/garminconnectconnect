@@ -289,9 +289,11 @@ class SyncPipeline:
     def sync_calendar(self, year: int | None = None, month: int | None = None) -> int:
         """Sync scheduled workouts from the Garmin calendar.
 
-        When called without arguments, syncs a 7-month window: 3 months back,
-        current month, and 3 months forward. This captures past scheduled
-        workouts and future training plan changes.
+        When called without arguments, syncs a 6-month window: 3 months back,
+        current month, and 2 months forward. This captures past scheduled
+        workouts and future training plan changes. (Was +3 forward; Garmin's
+        calendar-service returns HTTP 400 for the month three ahead on every
+        call, e.g. December when run in September — 2026-09-08 system check.)
 
         When called with explicit year/month, syncs just that month.
         """
@@ -300,7 +302,7 @@ class SyncPipeline:
             months_to_sync = [(year, month)]
         else:
             months_to_sync = []
-            for offset in range(-3, 4):
+            for offset in range(-3, 3):
                 d = today.replace(day=1)
                 # Shift by offset months
                 m = d.month + offset
