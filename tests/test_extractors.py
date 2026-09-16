@@ -229,3 +229,23 @@ def test_extract_activity_weather_empty():
 
 def test_extract_activity_weather_no_temp():
     assert extract_activity_weather("99", {"relativeHumidity": 50}) is None
+
+
+class TestExtractBodyCompositionNullKeys:
+    """Regression: explicit-null list keys must not raise (2026-09-16)."""
+
+    def test_null_summaries_without_weight_returns_empty(self):
+        from datetime import date
+        from garminconnect.sync.extractors import extract_body_composition
+        assert extract_body_composition(date(2026, 9, 16), {"dailyWeightSummaries": None}) == []
+
+    def test_null_summaries_with_weight_uses_top_level(self):
+        from datetime import date
+        from garminconnect.sync.extractors import extract_body_composition
+        out = extract_body_composition(date(2026, 9, 16), {"dailyWeightSummaries": None, "weight": 110500})
+        assert len(out) == 1 and abs(out[0].weight_kg - 110.5) < 1e-6
+
+    def test_null_datewightlist_returns_empty(self):
+        from datetime import date
+        from garminconnect.sync.extractors import extract_body_composition
+        assert extract_body_composition(date(2026, 9, 16), {"dateWeightList": None}) == []

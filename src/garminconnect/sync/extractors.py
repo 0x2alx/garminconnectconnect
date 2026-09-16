@@ -182,10 +182,12 @@ def extract_body_composition(target_date: date, data: Any) -> list[BodyCompositi
     if isinstance(data, list):
         items = data
     elif isinstance(data, dict):
-        items = data.get("dailyWeightSummaries", data.get("dateWeightList", []))
+        # Garmin can return the key present with an explicit null; `.get(key, default)`
+        # then yields None, and iterating None raised TypeError (flagged 2026-09-12).
+        items = data.get("dailyWeightSummaries") or data.get("dateWeightList") or []
         if not items and "weight" in data:
             items = [data]
-    for item in items:
+    for item in items or []:
         if not isinstance(item, dict):
             continue
         entry_date = item.get("date") or item.get("calendarDate")
