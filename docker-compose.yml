@@ -1,6 +1,15 @@
+# Rotate container logs: json-file grows forever otherwise (mongodb hit 19G of
+# connection/auth chatter between May and Sep 2026).
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   timescaledb:
     image: timescale/timescaledb:latest-pg16
+    logging: *default-logging
     restart: unless-stopped
     ports:
       - "0.0.0.0:5432:5432"
@@ -18,6 +27,7 @@ services:
 
   mongodb:
     image: mongo:7
+    logging: *default-logging
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-garmin}
@@ -33,6 +43,7 @@ services:
   # ── Garmin Server (daemon mode) ──────────────────────────────────
   garmin-server:
     build: .
+    logging: *default-logging
     env_file: .env
     environment:
       POSTGRES_HOST: host.docker.internal
@@ -52,6 +63,7 @@ services:
   # ── CLI commands (run with: docker compose run --rm garmin-cli <command>) ──
   garmin-cli:
     build: .
+    logging: *default-logging
     env_file: .env
     environment:
       POSTGRES_HOST: host.docker.internal
@@ -76,6 +88,7 @@ services:
   # ── MCP server (HTTP, for AI/LLM integration) ───────────────────
   garmin-mcp:
     build: .
+    logging: *default-logging
     env_file: .env
     environment:
       POSTGRES_HOST: host.docker.internal
