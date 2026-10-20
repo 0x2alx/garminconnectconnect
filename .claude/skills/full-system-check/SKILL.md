@@ -349,12 +349,17 @@ A check that could not be RUN is not healthy — treat an unreachable service or
 
 ```bash
 WEBHOOK=$(grep DISCORD_CLAUDE_K2_WEBHOOK ~/CODE/claude-k2/shared/.env | cut -d= -f2-)
-curl -s -X POST "$WEBHOOK" \
-  -H "Content-Type: application/json" \
-  -d "$(jq -n --arg content "$MESSAGE" '{content: $content}')"
+SENTINEL=/tmp/garminconnectconnect-full-system-check-posted-$(date +%Y%m%d%H)
+if [ -f "$SENTINEL" ]; then echo "SKIP: already posted this run"; else
+  printf '%s' "$MESSAGE" > /tmp/garminconnectconnect-fsc-discord-msg.txt
+  RESULT=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$WEBHOOK" \
+    -H "Content-Type: application/json" \
+    -d "$(jq -n --rawfile content /tmp/garminconnectconnect-fsc-discord-msg.txt '{content: $content}')")
+  if [ "$RESULT" -ge 200 ] && [ "$RESULT" -lt 300 ]; then touch "$SENTINEL"; echo "Posted to Discord (HTTP $RESULT)"; else echo "Discord post FAILED (HTTP $RESULT) — not retrying; report is on disk"; fi
+fi
 ```
 
-Post exactly once — if curl returns successfully, do NOT post again. If curl fails (non-zero exit code), log the error to stdout and do not retry.
+Post exactly once. The HTTP status printed by the block is the delivery confirmation — a 2xx means Discord accepted it; anything else means it did NOT post, say so in stdout, and do not retry.
 
 Output the same message to stdout as well.
 
