@@ -35,3 +35,12 @@ def test_fetch_unknown_endpoint_raises():
 def test_all_endpoints_have_unique_names():
     names = [ep.name for ep in ENDPOINTS_BY_NAME.values()]
     assert len(names) == len(set(names))
+
+
+def test_fetch_calendar_month_zero_is_substituted():
+    """January is month=0 on Garmin's calendar-service; 0 must not be treated as missing."""
+    mock_auth = MagicMock()
+    mock_auth.connectapi.return_value = {"calendarItems": []}
+    client = GarminAPIClient(auth=mock_auth, user_id="test_user")
+    client.fetch("calendar", year=2027, month=0)
+    assert mock_auth.connectapi.call_args[0][0] == "/calendar-service/year/2027/month/0"

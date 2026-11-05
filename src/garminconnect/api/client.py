@@ -46,9 +46,9 @@ class GarminAPIClient:
             replacements["{activity_id}"] = activity_id
         if device_id:
             replacements["{device_id}"] = device_id
-        if year:
+        if year is not None:
             replacements["{year}"] = str(year)
-        if month:
+        if month is not None:
             replacements["{month}"] = str(month)
         if "{profile_id}" in url:
             if not profile_id:

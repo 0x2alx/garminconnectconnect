@@ -1,5 +1,6 @@
 from __future__ import annotations
 import logging
+import re
 from datetime import date, timedelta
 from typing import Any
 import structlog
@@ -291,11 +292,16 @@ class SyncPipeline:
 
         When called without arguments, syncs a 6-month window: 3 months back,
         current month, and 2 months forward. This captures past scheduled
-        workouts and future training plan changes. (Was +3 forward; Garmin's
-        calendar-service returns HTTP 400 for the month three ahead on every
-        call, e.g. December when run in September — 2026-09-08 system check.)
+        workouts and future training plan changes.
 
         When called with explicit year/month, syncs just that month.
+
+        Garmin's calendar-service counts months from 0 (0=Jan … 11=Dec):
+        month=8 returns startDayOfMonth=2, and Sep 1 2026 is a Tuesday. We used
+        to pass the calendar month, which fetched the following month and made
+        month=12 a permanent HTTP 400 (the "future month" false DEGRADED,
+        2026-09 → 2026-11). month=0 returns 404, so January is unavailable;
+        a 4xx for one month is a warning, not a sync failure.
         """
         today = date.today()
         if year is not None and month is not None:
@@ -317,7 +323,7 @@ class SyncPipeline:
         count = 0
         for y, m in months_to_sync:
             try:
-                raw_data = self._fetch_with_retry("calendar", year=y, month=m)
+                raw_data = self._fetch_with_retry("calendar", year=y, month=m - 1)
                 if raw_data:
                     self.repo.store_raw("calendar", today, raw_data)
                     items = extract_scheduled_workouts(raw_data)
@@ -326,7 +332,10 @@ class SyncPipeline:
                         count += len(items)
                         logger.info("synced_calendar", year=y, month=m, count=len(items))
             except Exception as e:
-                logger.error("calendar_sync_failed", year=y, month=m, error=str(e))
+                if re.search(r"\b4\d\d Client Error", str(e)):
+                    logger.warning("calendar_month_unavailable", year=y, month=m, error=str(e))
+                else:
+                    logger.error("calendar_sync_failed", year=y, month=m, error=str(e))
         return count
 
     def sync_endurance_score(self) -> bool:
