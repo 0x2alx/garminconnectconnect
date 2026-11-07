@@ -46,7 +46,7 @@ services:
     logging: *default-logging
     env_file: .env
     environment:
-      POSTGRES_HOST: host.docker.internal
+      POSTGRES_HOST: timescaledb
       MONGO_HOST: mongodb
       GARMIN_TOKEN_DIR: /home/appuser/.garminconnect
     extra_hosts:
@@ -66,7 +66,7 @@ services:
     logging: *default-logging
     env_file: .env
     environment:
-      POSTGRES_HOST: host.docker.internal
+      POSTGRES_HOST: timescaledb
       MONGO_HOST: mongodb
       GARMIN_TOKEN_DIR: /home/appuser/.garminconnect
     extra_hosts:
@@ -91,7 +91,7 @@ services:
     logging: *default-logging
     env_file: .env
     environment:
-      POSTGRES_HOST: host.docker.internal
+      POSTGRES_HOST: timescaledb
       MONGO_HOST: mongodb
       GARMIN_TOKEN_DIR: /home/appuser/.garminconnect
       MCP_TRANSPORT: streamable-http
